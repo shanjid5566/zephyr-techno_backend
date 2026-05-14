@@ -285,3 +285,16 @@ model Order {
   @@index([userId])
   @@index([paymentIntentId])
 }
+
+model OrderItem {
+  id               String  @id @default(uuid())
+  orderId          String
+  productVariantId String
+  quantity         Int
+  priceAtPurchase  Decimal @db.Decimal(12, 2)
+
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@index([orderId])
+}
