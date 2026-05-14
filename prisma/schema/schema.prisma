@@ -115,12 +115,13 @@ model Product {
   seriesId      String
   deviceModelId String
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  category    Category    @relation(fields: [categoryId], references: [id])
-  brand       Brand       @relation(fields: [brandId], references: [id])
-  series      Series      @relation(fields: [seriesId], references: [id])
-  deviceModel DeviceModel @relation(fields: [deviceModelId], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  category         Category         @relation(fields: [categoryId], references: [id])
+  brand            Brand            @relation(fields: [brandId], references: [id])
+  series           Series           @relation(fields: [seriesId], references: [id])
+  deviceModel      DeviceModel      @relation(fields: [deviceModelId], references: [id])
+  productGalleries ProductGallery[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -128,4 +129,12 @@ model Product {
   @@index([deviceModelId])
 }
 
+model ProductGallery {
+  id           String  @id @default(uuid())
+  productId    String
+  imageUrl     String
+  displayOrder Int     @default(0)
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@index([productId])
+}
