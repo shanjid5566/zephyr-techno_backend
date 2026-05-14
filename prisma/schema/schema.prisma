@@ -219,6 +219,7 @@ model ProductVariant {
   storageOption StorageOption @relation(fields: [storageOptionId], references: [id])
   ramOption     RamOption     @relation(fields: [ramOptionId], references: [id])
   condition     Condition     @relation(fields: [conditionId], references: [id])
+  cartItems     CartItem[]
 
   @@index([productId])
   @@index([conditionId])
@@ -235,5 +236,20 @@ model Cart {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id               String   @id @default(uuid())
+  cartId           String
+  productVariantId String
+  quantity         Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
 }
