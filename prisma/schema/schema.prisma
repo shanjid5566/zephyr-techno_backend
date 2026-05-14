@@ -17,17 +17,33 @@ enum UserRole {
   ADMIN
 }
 
+// User Model
 
 model User {
-  id String @id @default(uuid())
-  email           String           @unique
-  passwordHash    String
-  firstName       String
-  lastName        String
-  phone           String?
-  role            UserRole         @default(CUSTOMER)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id            String        @id @default(uuid())
+  email         String        @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  phone         String?
+  role          UserRole      @default(CUSTOMER)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userAddresses UserAddress[]
 }
 
+model UserAddress {
+  id        String   @id @default(uuid())
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  country   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
