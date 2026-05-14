@@ -1,10 +1,12 @@
 import app from './app.js';
-const PORT = process.env.PORT || 3000;
+import env from './config/env.js';
+
+const PORT = env.port;
 
 // Start server
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Environment: ${env.nodeEnv}`);
   console.log(`Health check available at: http://localhost:${PORT}/health`);
 });
 

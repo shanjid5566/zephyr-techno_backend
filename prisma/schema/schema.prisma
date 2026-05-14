@@ -70,6 +70,13 @@ model User {
   firstName    String
   lastName     String
   phone        String?
+  isEmailVerified Boolean @default(false)
+  emailVerifiedAt DateTime?
+  emailVerificationOtpHash String?
+  emailVerificationOtpExpiresAt DateTime?
+  passwordResetOtpHash String?
+  passwordResetOtpExpiresAt DateTime?
+  passwordResetOtpVerifiedAt DateTime?
   role         UserRole @default(CUSTOMER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
