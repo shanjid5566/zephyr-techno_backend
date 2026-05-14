@@ -55,23 +55,27 @@ model UserAddress {
 // =====================================================================================
 
 model Category {
-  id   String @id @default(uuid())
-  name String @unique
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
 }
 
 model Brand {
-  id   String @id @default(uuid())
-  name String @unique
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
 }
 
 model Series {
-  id   String @id @default(uuid())
-  name String @unique
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
 }
 
 model DeviceModel {
-  id   String @id @default(uuid())
-  name String @unique
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
 }
 
 model Condition {
@@ -85,12 +89,43 @@ model Color {
   name String @unique
 }
 
-model StorageOption{
+model StorageOption {
   id   String @id @default(uuid())
   name String @unique
 }
 
-model RamOption{
+model RamOption {
   id   String @id @default(uuid())
   name String @unique
 }
+
+// =====================================================================================
+// PRODUCT & VARIANT SYSTEM
+// =====================================================================================
+
+model Product {
+  id           String  @id @default(uuid())
+  title        String
+  description  String
+  introduction String?
+  basePrice    Decimal @db.Decimal(12, 2)
+
+  categoryId    String
+  brandId       String
+  seriesId      String
+  deviceModelId String
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  category    Category    @relation(fields: [categoryId], references: [id])
+  brand       Brand       @relation(fields: [brandId], references: [id])
+  series      Series      @relation(fields: [seriesId], references: [id])
+  deviceModel DeviceModel @relation(fields: [deviceModelId], references: [id])
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([seriesId])
+  @@index([deviceModelId])
+}
+
+
