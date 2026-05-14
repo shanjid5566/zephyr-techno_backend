@@ -298,3 +298,23 @@ model OrderItem {
 
   @@index([orderId])
 }
+
+// =====================================================================================
+// PROMOTIONS, REVIEWS & SELL REQUESTS
+// =====================================================================================
+
+model PromoCode {
+  id                String       @id @default(uuid())
+  code              String       @unique
+  discountType      DiscountType @default(PERCENTAGE)
+  discountValue     Decimal      @db.Decimal(12, 2)
+  minOrderValue     Decimal?     @db.Decimal(12, 2)
+  maxUsageCount     Int?
+  currentUsageCount Int          @default(0)
+  startDate         DateTime
+  expiryDate        DateTime
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+}
