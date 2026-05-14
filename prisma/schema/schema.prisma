@@ -73,3 +73,14 @@ model DeviceModel {
   id   String @id @default(uuid())
   name String @unique
 }
+
+model Condition {
+  id        String  @id @default(uuid())
+  name      String  @unique
+  basePrice Decimal @default(0) @db.Decimal(12, 2)
+}
+
+model Color {
+  id   String @id @default(uuid())
+  name String @unique
+}
