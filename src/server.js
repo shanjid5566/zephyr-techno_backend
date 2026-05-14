@@ -1,6 +1,4 @@
-const app = require('./app');
-
-// Get port from environment variable or use default
+import app from './app.js';
 const PORT = process.env.PORT || 3000;
 
 // Start server
@@ -35,4 +33,4 @@ process.on('unhandledRejection', (reason, promise) => {
   });
 });
 
-module.exports = server;
+export default server;

@@ -1,4 +1,5 @@
-const express = require('express');
+import express from 'express';
+import userRoutes from './routes/user.routes.js'; 
 
 // Initialize Express app
 const app = express();
@@ -17,9 +18,6 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-
-// Import routes
-const userRoutes = require('./routes/user.routes');
 
 // Use routes
 app.use('/api/users', userRoutes);
@@ -42,4 +40,5 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app;
+// Export app using ES Module syntax
+export default app;
