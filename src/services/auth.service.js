@@ -129,7 +129,7 @@ class AuthService {
     });
 
     if (!user) {
-      throw new AppError('Invalid email or password.', 404);
+      throw new AppError('No account found with this email address.', 404);
     }
 
     if (!user.isEmailVerified) {
@@ -138,7 +138,7 @@ class AuthService {
 
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatches) {
-      throw new AppError('Invalid email or password.', 401);
+      throw new AppError('Incorrect password. Please try again.', 401);
     }
 
     const accessToken = jwt.sign(
