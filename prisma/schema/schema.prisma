@@ -1,16 +1,15 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
+// =====================================================================================
+// ENUMS
+// =====================================================================================
 
 enum UserRole {
   CUSTOMER
@@ -61,24 +60,27 @@ enum ReviewStatus {
   REJECTED
 }
 
-// User Model
+// =====================================================================================
+// CORE PLATFORM ENTITIES
+// =====================================================================================
 
 model User {
-  id            String        @id @default(uuid())
-  email         String        @unique
-  passwordHash  String
-  firstName     String
-  lastName      String
-  phone         String?
-  role          UserRole      @default(CUSTOMER)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  role         UserRole @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   userAddresses UserAddress[]
   cart          Cart?
   orders        Order[]
+  reviews       Review[]
+  sellRequests  SellRequest[]
 }
-
-// UserAddress Model
 
 model UserAddress {
   id        String   @id @default(uuid())
@@ -90,22 +92,23 @@ model UserAddress {
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders    Order[]
-  orders    Order[]
+
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[] @relation("OrderAddress")
 
   @@index([userId])
 }
 
 // =====================================================================================
-// ADMIN MANAGED ATTRIBUTES
+// ADMIN MANAGED LOOKUPS & ATTRIBUTES
 // =====================================================================================
 
 model Category {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  products Product[]
+  id         String                    @id @default(uuid())
+  name       String                    @unique
+  products   Product[]
+  promoCodes PromoCodeCategoryBridge[]
 }
 
 model Brand {
@@ -115,15 +118,20 @@ model Brand {
 }
 
 model Series {
-  id       String    @id @default(uuid())
-  name     String    @unique
+  id       String        @id @default(uuid())
+  name     String        @unique
+  models   DeviceModel[]
   products Product[]
 }
 
 model DeviceModel {
   id       String    @id @default(uuid())
   name     String    @unique
+  seriesId String
+  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   products Product[]
+
+  @@index([seriesId])
 }
 
 model Condition {
@@ -131,6 +139,9 @@ model Condition {
   name            String           @unique
   basePrice       Decimal          @default(0) @db.Decimal(12, 2)
   productVariants ProductVariant[]
+  sellRequests    SellRequest[]
+
+  @@index([name])
 }
 
 model Color {
@@ -152,35 +163,67 @@ model RamOption {
 }
 
 // =====================================================================================
-// PRODUCT & VARIANT SYSTEM
+// PRODUCT & INVENTORY SYSTEM
 // =====================================================================================
 
 model Product {
-  id           String  @id @default(uuid())
-  title        String
-  description  String
-  introduction String?
-  basePrice    Decimal @db.Decimal(12, 2)
+  id            String               @id @default(uuid())
+  title         String
+  description   String
+  introduction  String?
+  basePrice     Decimal              @db.Decimal(12, 2)
+  listingStatus ProductListingStatus @default(INACTIVE)
 
   categoryId    String
   brandId       String
   seriesId      String
   deviceModelId String
 
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  category         Category         @relation(fields: [categoryId], references: [id])
-  brand            Brand            @relation(fields: [brandId], references: [id])
-  series           Series           @relation(fields: [seriesId], references: [id])
-  deviceModel      DeviceModel      @relation(fields: [deviceModelId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category    Category    @relation(fields: [categoryId], references: [id])
+  brand       Brand       @relation(fields: [brandId], references: [id])
+  series      Series      @relation(fields: [seriesId], references: [id])
+  deviceModel DeviceModel @relation(fields: [deviceModelId], references: [id])
+
   productGalleries ProductGallery[]
   productFaqs      ProductFaq[]
   productVariants  ProductVariant[]
+  highlights       ProductHighlight[]
+  specifications   ProductSpecification[]
+  reviews          Review[]
 
   @@index([categoryId])
   @@index([brandId])
   @@index([seriesId])
   @@index([deviceModelId])
+  @@index([listingStatus])
+}
+
+model ProductHighlight {
+  id           String  @id @default(uuid())
+  productId    String
+  title        String
+  description  String
+  iconUrl      String?
+  displayOrder Int     @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductSpecification {
+  id           String @id @default(uuid())
+  productId    String
+  name         String
+  value        String
+  displayOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model ProductGallery {
@@ -222,14 +265,16 @@ model ProductVariant {
   storageOption StorageOption @relation(fields: [storageOptionId], references: [id])
   ramOption     RamOption     @relation(fields: [ramOptionId], references: [id])
   condition     Condition     @relation(fields: [conditionId], references: [id])
-  cartItems     CartItem[]
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@index([productId])
   @@index([conditionId])
 }
 
 // =====================================================================================
-// ORDER & CART SYSTEM (STRIPE INTEGRATED)
+// ORDER, CART & PAYMENTS (STRIPE EXCLUSIVE)
 // =====================================================================================
 
 model Cart {
@@ -267,7 +312,7 @@ model Order {
   discountTotal Decimal     @default(0) @db.Decimal(12, 2)
   promoCodeUsed String?
 
-  // Unified single address reference directly linking fulfillment location
+  // Unified single delivery address reference linking to fulfillment destination
   addressId String
 
   paymentStatus   PaymentStatus @default(PENDING)
@@ -277,12 +322,13 @@ model Order {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  user          User         @relation(fields: [userId], references: [id])
-  address       UserAddress  @relation("OrderAddress", fields: [addressId], references: [id])
-  userAddress   UserAddress? @relation(fields: [userAddressId], references: [id])
-  userAddressId String?
+  user       User        @relation(fields: [userId], references: [id])
+  address    UserAddress @relation("OrderAddress", fields: [addressId], references: [id])
+  orderItems OrderItem[]
 
   @@index([userId])
+  @@index([addressId])
+  @@index([orderStatus])
   @@index([paymentIntentId])
 }
 
@@ -297,10 +343,11 @@ model OrderItem {
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 
   @@index([orderId])
+  @@index([productVariantId])
 }
 
 // =====================================================================================
-// PROMOTIONS, REVIEWS & SELL REQUESTS
+// PROMOTIONS, FEEDBACK & C2B RE-COMMERCE
 // =====================================================================================
 
 model PromoCode {
@@ -316,6 +363,8 @@ model PromoCode {
   isActive          Boolean      @default(true)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+
+  applicableCategories PromoCodeCategoryBridge[]
 }
 
 model PromoCodeCategoryBridge {
