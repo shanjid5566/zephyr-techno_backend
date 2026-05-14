@@ -32,6 +32,8 @@ model User {
   userAddresses UserAddress[]
 }
 
+// UserAddress Model
+
 model UserAddress {
   id        String   @id @default(uuid())
   street    String
@@ -46,4 +48,13 @@ model UserAddress {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// =====================================================================================
+// ADMIN MANAGED ATTRIBUTES
+// =====================================================================================
+
+model Category {
+  id   String @id @default(uuid())
+  name String @unique
 }
