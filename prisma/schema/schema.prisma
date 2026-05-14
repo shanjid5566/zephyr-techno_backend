@@ -84,3 +84,13 @@ model Color {
   id   String @id @default(uuid())
   name String @unique
 }
+
+model StorageOption{
+  id   String @id @default(uuid())
+  name String @unique
+}
+
+model RamOption{
+  id   String @id @default(uuid())
+  name String @unique
+}
