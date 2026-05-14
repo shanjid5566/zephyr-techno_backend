@@ -8,7 +8,7 @@ import AppError from '../utils/app-error.js';
 class AuthService {
   constructor() {
     this.mailer = new Mailer();
-    this.passwordSaltRounds = 12;
+    this.passwordSaltRounds = 10;
     this.otpSaltRounds = 10;
     this.otpLength = 6;
     this.otpExpiryMinutes = Number(process.env.OTP_EXPIRES_MINUTES || 10);
@@ -35,10 +35,14 @@ class AuthService {
       throw new AppError('An account with this email already exists.', 409);
     }
 
-    const passwordHash = await bcrypt.hash(password, this.passwordSaltRounds);
     const emailVerificationOtp = this.#generateOtp();
-    const emailVerificationOtpHash = await bcrypt.hash(emailVerificationOtp, this.otpSaltRounds);
     const otpExpiresAt = this.#buildOtpExpiry();
+
+    // Run both expensive hash operations in parallel instead of sequentially
+    const [passwordHash, emailVerificationOtpHash] = await Promise.all([
+      bcrypt.hash(password, this.passwordSaltRounds),
+      bcrypt.hash(emailVerificationOtp, this.otpSaltRounds),
+    ]);
 
     const userData = {
       firstName,
@@ -64,11 +68,12 @@ class AuthService {
           data: userData,
         });
 
-    await this.mailer.sendEmailVerificationOtp({
+    // Fire-and-forget: do not block the response on SMTP delivery
+    this.mailer.sendEmailVerificationOtp({
       to: user.email,
       otp: emailVerificationOtp,
       recipientName: user.firstName,
-    });
+    }).catch((err) => console.error('[Mailer] Failed to send verification OTP:', err));
 
     return {
       message: 'Registration successful. Verification OTP sent to your email.',
@@ -186,11 +191,12 @@ class AuthService {
       },
     });
 
-    await this.mailer.sendPasswordResetOtp({
+    // Fire-and-forget: do not block the response on SMTP delivery
+    this.mailer.sendPasswordResetOtp({
       to: user.email,
       otp: resetOtp,
       recipientName: user.firstName,
-    });
+    }).catch((err) => console.error('[Mailer] Failed to send password reset OTP:', err));
 
     return {
       message: 'If the account exists, a password reset OTP has been sent.',
