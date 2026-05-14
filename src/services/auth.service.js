@@ -295,7 +295,64 @@ class AuthService {
     return { message: 'Password reset successfully.', user: this.#sanitizeUser(updatedUser) };
   }
 
+  /**
+   * Single resend-OTP endpoint for both flows.
+   * type: 'email-verification' | 'password-reset'
+   */
+  async resendOtp(payload) {
+    const email = this.#normalizeEmail(payload.email);
+    const type  = this.#requireString(payload.type, 'Type');
+
+    if (type === 'email-verification') {
+      return this.#resendEmailVerificationOtp(email);
+    }
+
+    if (type === 'password-reset') {
+      // Reuse the existing forgotPassword logic — identical behaviour
+      return this.forgotPassword({ email });
+    }
+
+    throw new AppError(
+      'Invalid OTP type. Accepted values: "email-verification", "password-reset".',
+      400,
+    );
+  }
+
   // ─── Private helpers ────────────────────────────────────────────────────────
+
+  async #resendEmailVerificationOtp(email) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { email: true, firstName: true, isEmailVerified: true },
+    });
+
+    if (!user) {
+      throw new AppError('Account not found.', 404);
+    }
+
+    if (user.isEmailVerified) {
+      throw new AppError('This email address is already verified.', 409);
+    }
+
+    const otp       = this.#generateOtp();
+    const otpHash   = await bcrypt.hash(otp, this.otpSaltRounds);
+    const expiresAt = this.#buildOtpExpiry();
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        emailVerificationOtpHash: otpHash,
+        emailVerificationOtpExpiresAt: expiresAt,
+      },
+    });
+
+    // Fire-and-forget: do not block the response on SMTP delivery
+    this.mailer
+      .sendEmailVerificationOtp({ to: user.email, otp, recipientName: user.firstName })
+      .catch((err) => console.error('[Mailer] Failed to resend verification OTP:', err));
+
+    return { message: 'A new verification OTP has been sent to your email.' };
+  }
 
   async #validateStoredOtp({ otp, storedHash, expiresAt, errorMessage }) {
     if (!storedHash || !expiresAt) {
