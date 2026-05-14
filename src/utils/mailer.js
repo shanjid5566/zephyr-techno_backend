@@ -1,24 +1,22 @@
 import nodemailer from 'nodemailer';
 import AppError from './app-error.js';
+import env from '../config/env.js';
 
 class Mailer {
   constructor() {
-    this.from = process.env.MAIL_FROM || process.env.MAIL_USER;
+    this.from = env.mailFrom;
     this.transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
-      port: Number(process.env.MAIL_PORT || 587),
-      secure: String(process.env.MAIL_SECURE).toLowerCase() === 'true',
-      auth: process.env.MAIL_USER && process.env.MAIL_PASS
-        ? {
-            user: process.env.MAIL_USER,
-            pass: process.env.MAIL_PASS,
-          }
+      host: env.mailHost,
+      port: env.mailPort,
+      secure: env.mailSecure,
+      auth: env.mailUser && env.mailPass
+        ? { user: env.mailUser, pass: env.mailPass }
         : undefined,
     });
   }
 
   #assertConfigured() {
-    if (!process.env.MAIL_HOST || !this.from) {
+    if (!env.mailHost || !this.from) {
       throw new AppError('Mail service is not configured.', 500);
     }
   }
@@ -37,13 +35,7 @@ class Mailer {
 
   async #sendMail({ to, subject, html }) {
     this.#assertConfigured();
-
-    return this.transporter.sendMail({
-      from: this.from,
-      to,
-      subject,
-      html,
-    });
+    return this.transporter.sendMail({ from: this.from, to, subject, html });
   }
 
   async sendEmailVerificationOtp({ to, otp, recipientName }) {

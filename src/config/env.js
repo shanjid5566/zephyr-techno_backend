@@ -1,5 +1,13 @@
 import 'dotenv/config';
 
+// Fail fast at startup if critical environment variables are missing
+const REQUIRED_VARS = ['DATABASE_URL', 'JWT_SECRET', 'MAIL_HOST', 'MAIL_USER', 'MAIL_PASS'];
+for (const key of REQUIRED_VARS) {
+  if (!process.env[key]) {
+    throw new Error(`[Config] Missing required environment variable: ${key}`);
+  }
+}
+
 const env = {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',

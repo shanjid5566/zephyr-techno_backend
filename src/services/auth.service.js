@@ -4,34 +4,57 @@ import { randomInt } from 'node:crypto';
 import prisma from '../utils/prisma.js';
 import Mailer from '../utils/mailer.js';
 import AppError from '../utils/app-error.js';
+import env from '../config/env.js';
+
+/**
+ * Reusable Prisma select shape that exactly matches #sanitizeUser output.
+ * Avoids fetching sensitive columns (password hashes) when they aren't needed.
+ */
+const SANITIZE_SELECT = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  role: true,
+  isEmailVerified: true,
+  emailVerifiedAt: true,
+  createdAt: true,
+  updatedAt: true,
+};
 
 class AuthService {
-  constructor() {
-    this.mailer = new Mailer();
+  /**
+   * @param {Mailer} mailer - Injected mailer instance (easy to mock in tests)
+   */
+  constructor(mailer = new Mailer()) {
+    this.mailer = mailer;
     this.passwordSaltRounds = 10;
     this.otpSaltRounds = 10;
     this.otpLength = 6;
-    this.otpExpiryMinutes = Number(process.env.OTP_EXPIRES_MINUTES || 10);
-    this.jwtSecret = process.env.JWT_SECRET;
-    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1d';
+    this.otpExpiryMinutes = env.otpExpiresMinutes;
+    this.jwtSecret = env.jwtSecret;
+    this.jwtExpiresIn = env.jwtExpiresIn;
   }
 
   async register(payload) {
     const firstName = this.#requireString(payload.firstName, 'First name');
-    const lastName = this.#requireString(payload.lastName, 'Last name');
-    const email = this.#normalizeEmail(payload.email);
-    const phone = payload.phone ? String(payload.phone).trim() : null;
-    const password = this.#requireString(payload.password, 'Password');
+    const lastName  = this.#requireString(payload.lastName,  'Last name');
+    const email     = this.#normalizeEmail(payload.email);
+    const phone     = payload.phone ? String(payload.phone).trim() : null;
+    const password  = this.#requireString(payload.password, 'Password');
 
     if (password.length < 8) {
       throw new AppError('Password must be at least 8 characters long.', 400);
     }
 
+    // Only fetch the two fields we actually need for this check
     const existingUser = await prisma.user.findUnique({
       where: { email },
+      select: { email: true, isEmailVerified: true },
     });
 
-    if (existingUser && existingUser.isEmailVerified) {
+    if (existingUser?.isEmailVerified) {
       throw new AppError('An account with this email already exists.', 409);
     }
 
@@ -59,21 +82,15 @@ class AuthService {
       passwordResetOtpVerifiedAt: null,
     };
 
+    // Return only safe columns — no hashes ever leave the DB layer
     const user = existingUser
-      ? await prisma.user.update({
-          where: { email },
-          data: userData,
-        })
-      : await prisma.user.create({
-          data: userData,
-        });
+      ? await prisma.user.update({ where: { email }, data: userData, select: SANITIZE_SELECT })
+      : await prisma.user.create({ data: userData, select: SANITIZE_SELECT });
 
     // Fire-and-forget: do not block the response on SMTP delivery
-    this.mailer.sendEmailVerificationOtp({
-      to: user.email,
-      otp: emailVerificationOtp,
-      recipientName: user.firstName,
-    }).catch((err) => console.error('[Mailer] Failed to send verification OTP:', err));
+    this.mailer
+      .sendEmailVerificationOtp({ to: user.email, otp: emailVerificationOtp, recipientName: user.firstName })
+      .catch((err) => console.error('[Mailer] Failed to send verification OTP:', err));
 
     return {
       message: 'Registration successful. Verification OTP sent to your email.',
@@ -83,10 +100,16 @@ class AuthService {
 
   async verifyEmail(payload) {
     const email = this.#normalizeEmail(payload.email);
-    const otp = this.#requireString(payload.otp, 'OTP');
+    const otp   = this.#requireString(payload.otp, 'OTP');
 
+    // Fetch sanitize fields + OTP fields in one query
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        ...SANITIZE_SELECT,
+        emailVerificationOtpHash: true,
+        emailVerificationOtpExpiresAt: true,
+      },
     });
 
     if (!user) {
@@ -94,10 +117,7 @@ class AuthService {
     }
 
     if (user.isEmailVerified) {
-      return {
-        message: 'Email is already verified.',
-        user: this.#sanitizeUser(user),
-      };
+      return { message: 'Email is already verified.', user: this.#sanitizeUser(user) };
     }
 
     await this.#validateStoredOtp({
@@ -115,22 +135,22 @@ class AuthService {
         emailVerificationOtpHash: null,
         emailVerificationOtpExpiresAt: null,
       },
+      select: SANITIZE_SELECT,
     });
 
-    return {
-      message: 'Email verified successfully.',
-      user: this.#sanitizeUser(updatedUser),
-    };
+    return { message: 'Email verified successfully.', user: this.#sanitizeUser(updatedUser) };
   }
 
   async login(payload) {
-    const email = this.#normalizeEmail(payload.email);
+    const email    = this.#normalizeEmail(payload.email);
     const password = this.#requireString(payload.password, 'Password');
 
     this.#requireJwtSecret();
 
+    // Fetch safe fields + passwordHash (needed only here)
     const user = await prisma.user.findUnique({
       where: { email },
+      select: { ...SANITIZE_SELECT, passwordHash: true },
     });
 
     if (!user) {
@@ -147,15 +167,9 @@ class AuthService {
     }
 
     const accessToken = jwt.sign(
-      {
-        sub: user.id,
-        email: user.email,
-        role: user.role,
-      },
+      { sub: user.id, email: user.email, role: user.role },
       this.jwtSecret,
-      {
-        expiresIn: this.jwtExpiresIn,
-      },
+      { expiresIn: this.jwtExpiresIn },
     );
 
     return {
@@ -169,17 +183,19 @@ class AuthService {
 
   async forgotPassword(payload) {
     const email = this.#normalizeEmail(payload.email);
+
+    // Only the two fields needed for the mailer — nothing sensitive
     const user = await prisma.user.findUnique({
       where: { email },
+      select: { email: true, firstName: true },
     });
 
+    // Return generic message regardless — prevents user-enumeration
     if (!user) {
-      return {
-        message: 'If the account exists, a password reset OTP has been sent.',
-      };
+      return { message: 'If the account exists, a password reset OTP has been sent.' };
     }
 
-    const resetOtp = this.#generateOtp();
+    const resetOtp     = this.#generateOtp();
     const resetOtpHash = await bcrypt.hash(resetOtp, this.otpSaltRounds);
 
     await prisma.user.update({
@@ -191,24 +207,26 @@ class AuthService {
       },
     });
 
-    // Fire-and-forget: do not block the response on SMTP delivery
-    this.mailer.sendPasswordResetOtp({
-      to: user.email,
-      otp: resetOtp,
-      recipientName: user.firstName,
-    }).catch((err) => console.error('[Mailer] Failed to send password reset OTP:', err));
+    // Fire-and-forget
+    this.mailer
+      .sendPasswordResetOtp({ to: user.email, otp: resetOtp, recipientName: user.firstName })
+      .catch((err) => console.error('[Mailer] Failed to send password reset OTP:', err));
 
-    return {
-      message: 'If the account exists, a password reset OTP has been sent.',
-    };
+    return { message: 'If the account exists, a password reset OTP has been sent.' };
   }
 
   async verifyResetOtp(payload) {
     const email = this.#normalizeEmail(payload.email);
-    const otp = this.#requireString(payload.otp, 'OTP');
+    const otp   = this.#requireString(payload.otp, 'OTP');
 
+    // Only OTP fields — no password hash or personal data needed
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        email: true,
+        passwordResetOtpHash: true,
+        passwordResetOtpExpiresAt: true,
+      },
     });
 
     if (!user) {
@@ -224,26 +242,29 @@ class AuthService {
 
     await prisma.user.update({
       where: { email },
-      data: {
-        passwordResetOtpVerifiedAt: new Date(),
-      },
+      data: { passwordResetOtpVerifiedAt: new Date() },
     });
 
-    return {
-      message: 'OTP verified successfully. You can now reset your password.',
-    };
+    return { message: 'OTP verified successfully. You can now reset your password.' };
   }
 
   async resetPassword(payload) {
-    const email = this.#normalizeEmail(payload.email);
+    const email       = this.#normalizeEmail(payload.email);
     const newPassword = this.#requireString(payload.newPassword, 'New password');
 
     if (newPassword.length < 8) {
       throw new AppError('New password must be at least 8 characters long.', 400);
     }
 
+    // Only the reset-OTP guard fields — avoids pulling all columns
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        email: true,
+        passwordResetOtpVerifiedAt: true,
+        passwordResetOtpExpiresAt: true,
+        passwordResetOtpHash: true,
+      },
     });
 
     if (!user) {
@@ -268,13 +289,13 @@ class AuthService {
         passwordResetOtpExpiresAt: null,
         passwordResetOtpVerifiedAt: null,
       },
+      select: SANITIZE_SELECT,
     });
 
-    return {
-      message: 'Password reset successfully.',
-      user: this.#sanitizeUser(updatedUser),
-    };
+    return { message: 'Password reset successfully.', user: this.#sanitizeUser(updatedUser) };
   }
+
+  // ─── Private helpers ────────────────────────────────────────────────────────
 
   async #validateStoredOtp({ otp, storedHash, expiresAt, errorMessage }) {
     if (!storedHash || !expiresAt) {
@@ -286,7 +307,6 @@ class AuthService {
     }
 
     const matches = await bcrypt.compare(String(otp).trim(), storedHash);
-
     if (!matches) {
       throw new AppError(errorMessage, 400);
     }
@@ -295,7 +315,6 @@ class AuthService {
   #generateOtp() {
     const min = 10 ** (this.otpLength - 1);
     const max = 10 ** this.otpLength;
-
     return String(randomInt(min, max));
   }
 
@@ -303,7 +322,6 @@ class AuthService {
     if (!this.jwtSecret) {
       throw new AppError('JWT_SECRET is not configured.', 500);
     }
-
     return this.jwtSecret;
   }
 
@@ -313,21 +331,17 @@ class AuthService {
 
   #normalizeEmail(email) {
     const normalizedEmail = String(email || '').trim().toLowerCase();
-
     if (!normalizedEmail) {
       throw new AppError('Email is required.', 400);
     }
-
     return normalizedEmail;
   }
 
   #requireString(value, fieldName) {
     const result = String(value || '').trim();
-
     if (!result) {
       throw new AppError(`${fieldName} is required.`, 400);
     }
-
     return result;
   }
 

@@ -1,70 +1,44 @@
 import AuthService from '../services/auth.service.js';
+import asyncHandler from '../utils/async-handler.js';
 
+/**
+ * Arrow class fields auto-bind `this` — no manual .bind() calls needed.
+ * asyncHandler wraps each method so try/catch is never repeated.
+ */
 class AuthController {
   constructor(authService = new AuthService()) {
     this.authService = authService;
-
-    this.register = this.register.bind(this);
-    this.verifyEmail = this.verifyEmail.bind(this);
-    this.login = this.login.bind(this);
-    this.forgotPassword = this.forgotPassword.bind(this);
-    this.verifyResetOtp = this.verifyResetOtp.bind(this);
-    this.resetPassword = this.resetPassword.bind(this);
   }
 
-  async register(req, res, next) {
-    try {
-      const result = await this.authService.register(req.body);
-      return res.status(201).json({ success: true, ...result });
-    } catch (error) {
-      return next(error);
-    }
-  }
+  register = asyncHandler(async (req, res) => {
+    const result = await this.authService.register(req.body);
+    res.status(201).json({ success: true, ...result });
+  });
 
-  async verifyEmail(req, res, next) {
-    try {
-      const result = await this.authService.verifyEmail(req.body);
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      return next(error);
-    }
-  }
+  verifyEmail = asyncHandler(async (req, res) => {
+    const result = await this.authService.verifyEmail(req.body);
+    res.status(200).json({ success: true, ...result });
+  });
 
-  async login(req, res, next) {
-    try {
-      const result = await this.authService.login(req.body);
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      return next(error);
-    }
-  }
+  login = asyncHandler(async (req, res) => {
+    const result = await this.authService.login(req.body);
+    res.status(200).json({ success: true, ...result });
+  });
 
-  async forgotPassword(req, res, next) {
-    try {
-      const result = await this.authService.forgotPassword(req.body);
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      return next(error);
-    }
-  }
+  forgotPassword = asyncHandler(async (req, res) => {
+    const result = await this.authService.forgotPassword(req.body);
+    res.status(200).json({ success: true, ...result });
+  });
 
-  async verifyResetOtp(req, res, next) {
-    try {
-      const result = await this.authService.verifyResetOtp(req.body);
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      return next(error);
-    }
-  }
+  verifyResetOtp = asyncHandler(async (req, res) => {
+    const result = await this.authService.verifyResetOtp(req.body);
+    res.status(200).json({ success: true, ...result });
+  });
 
-  async resetPassword(req, res, next) {
-    try {
-      const result = await this.authService.resetPassword(req.body);
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      return next(error);
-    }
-  }
+  resetPassword = asyncHandler(async (req, res) => {
+    const result = await this.authService.resetPassword(req.body);
+    res.status(200).json({ success: true, ...result });
+  });
 }
 
 export default new AuthController();
