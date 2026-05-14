@@ -63,3 +63,13 @@ model Brand {
   id   String @id @default(uuid())
   name String @unique
 }
+
+model Series {
+  id   String @id @default(uuid())
+  name String @unique
+}
+
+model DeviceModel {
+  id   String @id @default(uuid())
+  name String @unique
+}
