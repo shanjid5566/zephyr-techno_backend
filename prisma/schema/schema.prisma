@@ -65,6 +65,12 @@ enum ReviewStatus {
   REJECTED
 }
 
+enum ContactStatus {
+  NEW
+  PENDING
+  CONTRACTED
+}
+
 // =====================================================================================
 // CORE PLATFORM ENTITIES
 // =====================================================================================
@@ -243,6 +249,22 @@ model Product {
   @@index([isDeleted])                      // Index for soft-delete filter
   @@index([categoryId, listingStatus, isDeleted])  // Composite index for common filter queries
   @@index([createdAt(sort: Desc)])          // Index for sorting by newest
+}
+
+model ContactMessage {
+  id         String   @id @default(uuid())
+  firstName  String
+  email      String
+  subject    String
+  phone      String
+  message    String
+  status     ContactStatus @default(NEW)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isDeleted  Boolean  @default(false)
+  deletedAt  DateTime?
+
+  @@index([createdAt(sort: Desc)])
 }
 
 model ProductHighlight {
