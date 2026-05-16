@@ -30,6 +30,8 @@ class ProductService {
       basePrice: product.basePrice,
       stockQuantity: product.stockQuantity || 0,
       listingStatus: product.listingStatus,
+      isFeatured: Boolean(product.isFeatured || false),
+      featuredAt: product.featuredAt || null,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
 
@@ -117,6 +119,8 @@ class ProductService {
       condition: product.condition
         ? { id: product.condition.id, name: product.condition.name }
         : null,
+      isFeatured: Boolean(product.isFeatured || false),
+      featuredAt: product.featuredAt || null,
       createdAt: product.createdAt,
     };
   }
@@ -309,7 +313,15 @@ class ProductService {
 
     const products = await prisma.product.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        basePrice: true,
+        stockQuantity: true,
+        listingStatus: true,
+        isFeatured: true,
+        featuredAt: true,
+        createdAt: true,
         category: { select: { id: true, name: true } },
         series: { select: { id: true, name: true } },
         deviceModel: { select: { id: true, name: true } },
@@ -549,6 +561,32 @@ class ProductService {
       throw error;
     }
   }
-}
+ 
+  /**
+   * Toggle or set featured flag for a product (admin only)
+   */
+  async changeProductFeatured(id, featured) {
+    const isFeatured = Boolean(featured === true || featured === 'true' || featured === '1' || featured === 1);
 
+    try {
+      const updated = await prisma.product.update({
+        where: { id },
+        data: {
+          isFeatured: isFeatured,
+          featuredAt: isFeatured ? new Date() : null,
+        },
+        select: {
+          id: true,
+          title: true,
+          isFeatured: true,
+          featuredAt: true,
+        },
+      });
+      return updated;
+    } catch (err) {
+      if (err.code === 'P2025') throw new AppError('Product not found', 404);
+      throw err;
+    }
+  }
+}
 export default new ProductService();

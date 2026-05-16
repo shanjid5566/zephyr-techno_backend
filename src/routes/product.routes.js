@@ -23,4 +23,7 @@ productRoutes.patch('/:id', upload.array('images', 10), productController.update
 // Soft Delete product
 productRoutes.delete('/:id', productController.deleteProduct);
 
+// Toggle featured status (admin only)
+productRoutes.patch('/:id/feature', productController.changeFeatured);
+
 export default productRoutes;

@@ -34,6 +34,13 @@ class ProductController {
     await productService.deleteProduct(req.params.id);
     res.status(200).json({ success: true, message: 'Product deleted successfully.' });
   });
+
+  changeFeatured = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { isFeatured } = req.body; // accept { "isFeatured": true }
+    const updated = await productService.changeProductFeatured(id, isFeatured);
+    res.status(200).json({ success: true, message: 'Product featured status updated.', data: updated });
+  });
 }
 
 export default new ProductController();

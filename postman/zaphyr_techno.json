@@ -848,6 +848,24 @@
                 }
               }
             }
+            ,
+            {
+              "name": "Toggle Featured",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"isFeatured\": true\n}", "options": { "raw": { "language": "json" } } },
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/products/:id/feature",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "products", ":id", "feature"],
+                  "variable": [{ "key": "id", "value": "PRODUCT_ID_HERE" }]
+                }
+              }
+            }
           ]
         },
         {
