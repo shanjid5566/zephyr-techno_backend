@@ -5,30 +5,13 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3000"
-    },
-    {
-      "key": "email",
-      "value": "john.doe@example.com"
-    },
-    {
-      "key": "otp",
-      "value": "123456"
-    },
-    {
-      "key": "resetOtp",
-      "value": "123456"
-    },
-    {
-      "key": "password",
-      "value": "Password123!"
-    },
-    {
-      "key": "newPassword",
-      "value": "NewPassword123!"
-    }
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "email", "value": "admin@zephyrtechno.com" },
+    { "key": "otp", "value": "123456" },
+    { "key": "resetOtp", "value": "123456" },
+    { "key": "password", "value": "Admin@1234" },
+    { "key": "newPassword", "value": "NewPassword123!" },
+    { "key": "adminToken", "value": "" }
   ],
   "item": [
     {
@@ -38,22 +21,11 @@
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
             },
             "body": {
               "mode": "raw",
@@ -65,166 +37,99 @@
           "name": "Verify Email",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/verify-email",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "verify-email"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-email"]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\"\n}" }
           }
         },
         {
           "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "",
+                  "if (res.success && res.accessToken) {",
+                  "  pm.collectionVariables.set('adminToken', res.accessToken);",
+                  "  console.log('[Postman] adminToken saved:', res.accessToken.substring(0, 20) + '...');",
+                  "} else {",
+                  "  console.warn('[Postman] Login did not return an accessToken. Check credentials.');",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" }
           }
         },
         {
           "name": "Forgot Password",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/forgot-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "forgot-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "forgot-password"]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\"\n}" }
           }
         },
         {
           "name": "Verify Reset OTP",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/verify-reset-otp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "verify-reset-otp"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-reset-otp"]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{resetOtp}}\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{resetOtp}}\"\n}" }
           }
         },
         {
           "name": "Reset Password",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/reset-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "reset-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}" }
           }
         },
         {
           "name": "Resend OTP (Email Verification)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/resend-otp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "resend-otp"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "resend-otp"]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"type\": \"email-verification\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             }
           }
         },
@@ -232,33 +137,594 @@
           "name": "Resend OTP (Password Reset)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/api/auth/resend-otp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "resend-otp"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "resend-otp"]
             },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"type\": \"password-reset\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "admin",
+      "item": [
+        {
+          "name": "attributes",
+          "item": [
+            {
+              "name": "Category",
+              "item": [
+                {
+                  "name": "Create Category",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/categories",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "categories"]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"New\"\n}" }
+                  }
+                },
+                {
+                  "name": "Get All Categories",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/categories",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "categories"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Category By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/categories/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "categories", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Category",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/categories/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "categories", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"Used\"\n}" }
+                  }
+                },
+                {
+                  "name": "Delete Category",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/categories/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "categories", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Series",
+              "item": [
+                {
+                  "name": "Create Series",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/series",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "series"]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"iPhone\"\n}" }
+                  }
+                },
+                {
+                  "name": "Get All Series",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/series",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "series"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Series By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/series/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "series", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Series",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/series/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "series", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"Samsung\"\n}" }
+                  }
+                },
+                {
+                  "name": "Delete Series",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/series/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "series", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Model",
+              "item": [
+                {
+                  "name": "Create Model",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/models",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "models"]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"iPhone 15 Pro\",\n  \"seriesId\": \"<series-uuid>\"\n}" }
+                  }
+                },
+                {
+                  "name": "Get All Models",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/models",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "models"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Model By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/models/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "models", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Model",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/models/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "models", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"iPhone 15\"\n}" }
+                  }
+                },
+                {
+                  "name": "Delete Model",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/models/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "models", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Condition",
+              "item": [
+                {
+                  "name": "Create Condition",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/conditions",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "conditions"]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"Excellent\"\n}" }
+                  }
+                },
+                {
+                  "name": "Get All Conditions",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/conditions",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "conditions"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Condition By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/conditions/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "conditions", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Condition",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/conditions/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "conditions", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"Very Good\"\n}" }
+                  }
+                },
+                {
+                  "name": "Delete Condition",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/conditions/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "conditions", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Condition Price",
+              "item": [
+                {
+                  "name": "Get All Condition Prices",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/condition-prices",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "condition-prices"]
+                    }
+                  }
+                },
+                {
+                  "name": "Set Condition Price",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/condition-prices/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "condition-prices", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"basePrice\": 100.00\n}" }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Color",
+              "item": [
+                {
+                  "name": "Create Color",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/colors",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "colors"]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"Midnight Black\"\n}" }
+                  }
+                },
+                {
+                  "name": "Get All Colors",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/colors",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "colors"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Color By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/colors/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "colors", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Color",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/colors/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "colors", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"Rose Gold\"\n}" }
+                  }
+                },
+                {
+                  "name": "Delete Color",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/colors/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "colors", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Storage",
+              "item": [
+                {
+                  "name": "Create Storage Option",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/storage-options",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "storage-options"]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"256 GB\"\n}" }
+                  }
+                },
+                {
+                  "name": "Get All Storage Options",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/storage-options",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "storage-options"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Storage Option By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/storage-options/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "storage-options", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Storage Option",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/storage-options/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "storage-options", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"512 GB\"\n}" }
+                  }
+                },
+                {
+                  "name": "Delete Storage Option",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/storage-options/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "storage-options", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "RAM",
+              "item": [
+                {
+                  "name": "Create RAM Option",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/ram-options",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "ram-options"]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"8 GB\"\n}" }
+                  }
+                },
+                {
+                  "name": "Get All RAM Options",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/ram-options",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "ram-options"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get RAM Option By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/ram-options/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "ram-options", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update RAM Option",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/ram-options/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "ram-options", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    },
+                    "body": { "mode": "raw", "raw": "{\n  \"name\": \"16 GB\"\n}" }
+                  }
+                },
+                {
+                  "name": "Delete RAM Option",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/ram-options/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "ram-options", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     }

@@ -1,6 +1,7 @@
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import adminAttributesRoutes from './routes/admin/attributes.routes.js';
 import env from './config/env.js';
 
 const app = express();
@@ -22,6 +23,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin/attributes', adminAttributesRoutes);
 
 // 404 — catch all undefined routes
 app.use((req, res) => {
