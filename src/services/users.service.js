@@ -3,10 +3,17 @@ import AppError from '../utils/app-error.js';
 import bcrypt from 'bcryptjs';
 
 class UserService {
-  async getAllUsers(query = {}) {
-    const { q, role, limit = 50, offset = 0 } = query;
+  async getAllUsers(query = {}, options = { onlyCustomers: true }) {
+    let { q, role, limit = 50, offset = 0 } = query;
+    limit = Math.min(Number(limit) || 50, 100); // cap limit to prevent expensive queries
+    offset = Number(offset) || 0;
+
     const where = {};
-    if (role) where.role = role;
+    if (options.onlyCustomers) {
+      where.role = 'CUSTOMER';
+    } else if (role) {
+      where.role = role;
+    }
     if (q) {
       where.OR = [
         { firstName: { contains: q, mode: 'insensitive' } },
@@ -16,24 +23,28 @@ class UserService {
       ];
     }
 
-    const users = await prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        role: true,
-        isEmailVerified: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: Number(offset),
-      take: Number(limit),
-    });
+    // Run count and findMany in parallel for better performance
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          role: true,
+          isEmailVerified: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+    ]);
 
-    return users;
+    return { total, data: users };
   }
 
   async getUserById(id) {
@@ -55,29 +66,6 @@ class UserService {
     return user;
   }
 
-  async createUser(data) {
-    const { email, password, firstName, lastName, phone, role } = data;
-    if (!email || !password) throw new AppError('Email and password are required', 400);
-
-    const existing = await prisma.user.findFirst({ where: { email }, includeDeleted: true });
-    if (existing) throw new AppError('Email already in use', 409);
-
-    const hash = await bcrypt.hash(password, 10);
-
-    const created = await prisma.user.create({
-      data: {
-        email,
-        passwordHash: hash,
-        firstName: firstName || '',
-        lastName: lastName || '',
-        phone: phone || null,
-        role: role || 'CUSTOMER',
-      },
-      select: { id: true, email: true },
-    });
-
-    return created;
-  }
 
   async updateUser(id, data) {
     const updateData = {};

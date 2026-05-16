@@ -849,6 +849,46 @@
               }
             }
           ]
+        },
+        {
+          "name": "user management",
+          "item": [
+            {
+              "name": "Get All Users",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "url": { "raw": "{{baseUrl}}/api/admin/users", "host": ["{{baseUrl}}"], "path": ["api","admin","users"], "query": [ { "key": "page", "value": "1" }, { "key": "limit", "value": "10" } ] }
+              }
+            },
+            {
+              "name": "Get User By ID",
+              "request": {
+                "method": "GET",
+                "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+                "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","users",":id"] }
+              }
+            },
+            {
+              "name": "Update User",
+              "request": {
+                "method": "PATCH",
+                "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+                "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"UpdatedName\",\n  \"role\": \"ADMIN\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","users",":id"] }
+              }
+            },
+            {
+              "name": "Delete User",
+              "request": {
+                "method": "DELETE",
+                "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+                "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","users",":id"] }
+              }
+            }
+          ]
         }
       ]
     }

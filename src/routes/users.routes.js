@@ -10,7 +10,6 @@ publicRouter.get('/', (req, res) => res.status(200).json({ message: 'User routes
 const adminRouter = Router();
 adminRouter.use(authenticate, adminGuard);
 adminRouter.get('/', usersController.getAllUsers);
-adminRouter.post('/', usersController.createUser);
 adminRouter.get('/:id', usersController.getUserById);
 adminRouter.patch('/:id', usersController.updateUser);
 adminRouter.delete('/:id', usersController.deleteUser);
