@@ -11,6 +11,13 @@ class AttributesController {
     this.service = service;
   }
 
+  // ─── CONSOLIDATED OPTIONS ────────────────────────────────────
+
+  getAllAttributeOptions = asyncHandler(async (req, res) => {
+    const data = await this.service.getAllAttributeOptions();
+    res.status(200).json({ success: true, data });
+  });
+
   // ─── CATEGORY ────────────────────────────────────────────────
 
   createCategory = asyncHandler(async (req, res) => {

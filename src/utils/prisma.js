@@ -13,10 +13,108 @@ if (!connectionString) {
 
 const adapter = new PrismaPg({ connectionString });
 
-const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+const basePrisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+
+const prisma = basePrisma.$extends({
+  query: {
+    $allModels: {
+      async findMany({ model, operation, args, query }) {
+        if (!args?.includeDeleted) {
+          args.where = { isDeleted: false, ...args.where };
+        }
+        if (args?.includeDeleted) delete args.includeDeleted;
+        return query(args);
+      },
+      async findFirst({ model, operation, args, query }) {
+        if (!args?.includeDeleted) {
+          args.where = { isDeleted: false, ...args.where };
+        }
+        if (args?.includeDeleted) delete args.includeDeleted;
+        return query(args);
+      },
+      async findFirstOrThrow({ model, operation, args, query }) {
+        if (!args?.includeDeleted) {
+          args.where = { isDeleted: false, ...args.where };
+        }
+        if (args?.includeDeleted) delete args.includeDeleted;
+        return query(args);
+      },
+      async findUnique({ model, operation, args, query }) {
+        // findUnique requires strictly unique fields in `where`. 
+        // We override this to findFirst so we can append `isDeleted: false`.
+        const { where, includeDeleted, ...rest } = args;
+        const newArgs = { where, ...rest };
+        if (!includeDeleted) {
+          newArgs.where = { ...where, isDeleted: false };
+        }
+        return basePrisma[model].findFirst(newArgs);
+      },
+      async findUniqueOrThrow({ model, operation, args, query }) {
+        const { where, includeDeleted, ...rest } = args;
+        const newArgs = { where, ...rest };
+        if (!includeDeleted) {
+          newArgs.where = { ...where, isDeleted: false };
+        }
+        return basePrisma[model].findFirstOrThrow(newArgs);
+      },
+      async count({ model, operation, args, query }) {
+        args = args || {};
+        if (!args.includeDeleted) {
+          args.where = { isDeleted: false, ...args.where };
+        }
+        if (args.includeDeleted) delete args.includeDeleted;
+        return query(args);
+      },
+      async aggregate({ model, operation, args, query }) {
+        args = args || {};
+        if (!args.includeDeleted) {
+          args.where = { isDeleted: false, ...args.where };
+        }
+        if (args.includeDeleted) delete args.includeDeleted;
+        return query(args);
+      },
+      async groupBy({ model, operation, args, query }) {
+        args = args || {};
+        if (!args.includeDeleted) {
+          args.where = { isDeleted: false, ...args.where };
+        }
+        if (args.includeDeleted) delete args.includeDeleted;
+        return query(args);
+      },
+      async delete({ model, operation, args, query }) {
+        const timestamp = Date.now();
+        const data = { isDeleted: true, deletedAt: new Date() };
+
+        if (model === 'User') {
+          // Fetch existing to append to its email
+          const existing = await basePrisma.user.findFirst({ where: args.where, includeDeleted: true });
+          if (existing && !existing.email.includes('_deleted_')) {
+            data.email = `${existing.email}_deleted_${timestamp}`;
+          }
+        }
+
+        return basePrisma[model].update({
+          where: args.where,
+          data,
+        });
+      },
+      async deleteMany({ model, operation, args, query }) {
+        args = args || {};
+        const timestamp = Date.now();
+        const data = { isDeleted: true, deletedAt: new Date() };
+
+        // For deleteMany on User, we can't easily append the specific old email in a single SQL UPDATE query 
+        // using Prisma without raw queries, so we skip dynamic renaming here. Usually deleteMany isn't used for Users.
+
+        args.data = data;
+        return basePrisma[model].updateMany(args);
+      },
+    },
+  },
+});
 
 if (env.nodeEnv !== 'production') {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.prisma = basePrisma;
 }
 
 export default prisma;

@@ -7,6 +7,9 @@ const adminAttributesRoutes = Router();
 // All routes below require a valid JWT + ADMIN role
 adminAttributesRoutes.use(authenticate, adminGuard);
 
+// ─── CONSOLIDATED OPTIONS ──────────────────────────────────────
+adminAttributesRoutes.get('/all-options', ctrl.getAllAttributeOptions);
+
 // ─── CATEGORIES ────────────────────────────────────────────────
 adminAttributesRoutes.post('/categories', ctrl.createCategory);
 adminAttributesRoutes.get('/categories', ctrl.getAllCategories);

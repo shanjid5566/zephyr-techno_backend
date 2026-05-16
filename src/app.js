@@ -2,6 +2,7 @@ import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import adminAttributesRoutes from './routes/attributes.routes.js';
+import adminProductRoutes from './routes/admin/product.routes.js';
 import env from './config/env.js';
 
 const app = express();
@@ -9,6 +10,9 @@ const app = express();
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from 'uploads' directory
+app.use('/uploads', express.static('uploads'));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -24,6 +28,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin/attributes', adminAttributesRoutes);
+app.use('/api/admin/products', adminProductRoutes);
 
 // 404 — catch all undefined routes
 app.use((req, res) => {
@@ -50,3 +55,6 @@ app.use((err, req, res, next) => {
 });
 
 export default app;
+// touch to restart nodemon
+
+// touch to restart nodemon

@@ -64,28 +64,30 @@ enum ReviewStatus {
 // =====================================================================================
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  phone        String?
-  isEmailVerified Boolean @default(false)
-  emailVerifiedAt DateTime?
-  emailVerificationOtpHash String?
+  id                            String    @id @default(uuid())
+  email                         String    @unique
+  passwordHash                  String
+  firstName                     String
+  lastName                      String
+  phone                         String?
+  isEmailVerified               Boolean   @default(false)
+  emailVerifiedAt               DateTime?
+  emailVerificationOtpHash      String?
   emailVerificationOtpExpiresAt DateTime?
-  passwordResetOtpHash String?
-  passwordResetOtpExpiresAt DateTime?
-  passwordResetOtpVerifiedAt DateTime?
-  role         UserRole @default(CUSTOMER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  passwordResetOtpHash          String?
+  passwordResetOtpExpiresAt     DateTime?
+  passwordResetOtpVerifiedAt    DateTime?
+  role                          UserRole  @default(CUSTOMER)
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
 
   userAddresses UserAddress[]
   cart          Cart?
   orders        Order[]
   reviews       Review[]
   sellRequests  SellRequest[]
+  isDeleted     Boolean       @default(false)
+  deletedAt     DateTime?
 }
 
 model UserAddress {
@@ -99,9 +101,11 @@ model UserAddress {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  userId String
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[] @relation("OrderAddress")
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]   @relation("OrderAddress")
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
   @@index([userId])
 }
@@ -115,27 +119,28 @@ model Category {
   name       String                    @unique
   products   Product[]
   promoCodes PromoCodeCategoryBridge[]
+  isDeleted  Boolean                   @default(false)
+  deletedAt  DateTime?
 }
 
-model Brand {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  products Product[]
-}
 
 model Series {
-  id       String        @id @default(uuid())
-  name     String        @unique
-  models   DeviceModel[]
-  products Product[]
+  id        String        @id @default(uuid())
+  name      String        @unique
+  models    DeviceModel[]
+  products  Product[]
+  isDeleted Boolean       @default(false)
+  deletedAt DateTime?
 }
 
 model DeviceModel {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  seriesId String
-  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  products Product[]
+  id        String    @id @default(uuid())
+  name      String    @unique
+  seriesId  String
+  series    Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  products  Product[]
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
   @@index([seriesId])
 }
@@ -146,6 +151,8 @@ model Condition {
   basePrice       Decimal          @default(0) @db.Decimal(12, 2)
   productVariants ProductVariant[]
   sellRequests    SellRequest[]
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
 
   @@index([name])
 }
@@ -154,18 +161,24 @@ model Color {
   id              String           @id @default(uuid())
   name            String           @unique
   productVariants ProductVariant[]
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
 }
 
 model StorageOption {
   id              String           @id @default(uuid())
   name            String           @unique
   productVariants ProductVariant[]
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
 }
 
 model RamOption {
   id              String           @id @default(uuid())
   name            String           @unique
   productVariants ProductVariant[]
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
 }
 
 // =====================================================================================
@@ -181,7 +194,6 @@ model Product {
   listingStatus ProductListingStatus @default(INACTIVE)
 
   categoryId    String
-  brandId       String
   seriesId      String
   deviceModelId String
 
@@ -189,7 +201,6 @@ model Product {
   updatedAt DateTime @updatedAt
 
   category    Category    @relation(fields: [categoryId], references: [id])
-  brand       Brand       @relation(fields: [brandId], references: [id])
   series      Series      @relation(fields: [seriesId], references: [id])
   deviceModel DeviceModel @relation(fields: [deviceModelId], references: [id])
 
@@ -199,9 +210,10 @@ model Product {
   highlights       ProductHighlight[]
   specifications   ProductSpecification[]
   reviews          Review[]
+  isDeleted        Boolean                @default(false)
+  deletedAt        DateTime?
 
   @@index([categoryId])
-  @@index([brandId])
   @@index([seriesId])
   @@index([deviceModelId])
   @@index([listingStatus])
@@ -215,7 +227,9 @@ model ProductHighlight {
   iconUrl      String?
   displayOrder Int     @default(0)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
   @@index([productId])
 }
@@ -227,27 +241,33 @@ model ProductSpecification {
   value        String
   displayOrder Int    @default(0)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
   @@index([productId])
 }
 
 model ProductGallery {
-  id           String  @id @default(uuid())
+  id           String    @id @default(uuid())
   productId    String
   imageUrl     String
-  displayOrder Int     @default(0)
-  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  displayOrder Int       @default(0)
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isDeleted    Boolean   @default(false)
+  deletedAt    DateTime?
 
   @@index([productId])
 }
 
 model ProductFaq {
-  id        String  @id @default(uuid())
+  id        String    @id @default(uuid())
   productId String
   question  String
   answer    String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
   @@index([productId])
 }
@@ -274,6 +294,8 @@ model ProductVariant {
 
   cartItems  CartItem[]
   orderItems OrderItem[]
+  isDeleted  Boolean     @default(false)
+  deletedAt  DateTime?
 
   @@index([productId])
   @@index([conditionId])
@@ -292,6 +314,8 @@ model Cart {
 
   user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   cartItems CartItem[]
+  isDeleted Boolean    @default(false)
+  deletedAt DateTime?
 }
 
 model CartItem {
@@ -304,6 +328,8 @@ model CartItem {
 
   cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  isDeleted      Boolean        @default(false)
+  deletedAt      DateTime?
 
   @@index([cartId])
 }
@@ -331,6 +357,8 @@ model Order {
   user       User        @relation(fields: [userId], references: [id])
   address    UserAddress @relation("OrderAddress", fields: [addressId], references: [id])
   orderItems OrderItem[]
+  isDeleted  Boolean     @default(false)
+  deletedAt  DateTime?
 
   @@index([userId])
   @@index([addressId])
@@ -347,6 +375,8 @@ model OrderItem {
 
   order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+  isDeleted      Boolean        @default(false)
+  deletedAt      DateTime?
 
   @@index([orderId])
   @@index([productVariantId])
@@ -371,6 +401,8 @@ model PromoCode {
   updatedAt         DateTime     @updatedAt
 
   applicableCategories PromoCodeCategoryBridge[]
+  isDeleted            Boolean                   @default(false)
+  deletedAt            DateTime?
 }
 
 model PromoCodeCategoryBridge {
@@ -381,6 +413,8 @@ model PromoCodeCategoryBridge {
 
   promoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
   category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
   @@unique([promoCodeId, categoryId])
 }
@@ -395,8 +429,10 @@ model Review {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
   @@index([productId])
 }
@@ -421,6 +457,8 @@ model SellRequest {
   user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   condition Condition     @relation(fields: [conditionId], references: [id])
   images    DeviceImage[]
+  isDeleted Boolean       @default(false)
+  deletedAt DateTime?
 
   @@index([userId])
   @@index([conditionId])
@@ -431,6 +469,8 @@ model DeviceImage {
   sellRequestId String
   imageUrl      String
   sellRequest   SellRequest @relation(fields: [sellRequestId], references: [id], onDelete: Cascade)
+  isDeleted     Boolean     @default(false)
+  deletedAt     DateTime?
 
   @@index([sellRequestId])
 }

@@ -19,7 +19,10 @@ class AttributesService {
 
   async createCategory({ name }) {
     name = this.#requireString(name, 'Category name');
-    await this.#assertUnique('category', { name }, 'Category name already exists.');
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('category', { name }, 'Category name already exists.');
+    if (deletedRecord) {
+      return prisma.category.update({ where: { id: deletedRecord.id }, data: { isDeleted: false, deletedAt: null } });
+    }
     return prisma.category.create({ data: { name } });
   }
 
@@ -34,7 +37,8 @@ class AttributesService {
   async updateCategory(id, { name }) {
     await this.#findOrFail('category', id, 'Category');
     name = this.#requireString(name, 'Category name');
-    await this.#assertUnique('category', { name }, 'Category name already exists.', id);
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('category', { name }, 'Category name already exists.', id);
+    if (deletedRecord) throw new AppError('Name is currently used by a deleted category. Please use a different name.', 409);
     return prisma.category.update({ where: { id }, data: { name } });
   }
 
@@ -49,7 +53,10 @@ class AttributesService {
 
   async createSeries({ name }) {
     name = this.#requireString(name, 'Series name');
-    await this.#assertUnique('series', { name }, 'Series name already exists.');
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('series', { name }, 'Series name already exists.');
+    if (deletedRecord) {
+      return prisma.series.update({ where: { id: deletedRecord.id }, data: { isDeleted: false, deletedAt: null } });
+    }
     return prisma.series.create({ data: { name } });
   }
 
@@ -64,7 +71,8 @@ class AttributesService {
   async updateSeries(id, { name }) {
     await this.#findOrFail('series', id, 'Series');
     name = this.#requireString(name, 'Series name');
-    await this.#assertUnique('series', { name }, 'Series name already exists.', id);
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('series', { name }, 'Series name already exists.', id);
+    if (deletedRecord) throw new AppError('Name is currently used by a deleted series. Please use a different name.', 409);
     return prisma.series.update({ where: { id }, data: { name } });
   }
 
@@ -81,7 +89,14 @@ class AttributesService {
     name = this.#requireString(name, 'Model name');
     seriesId = this.#requireString(seriesId, 'Series ID');
     await this.#findOrFail('series', seriesId, 'Series');
-    await this.#assertUnique('deviceModel', { name }, 'Model name already exists.');
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('deviceModel', { name }, 'Model name already exists.');
+    if (deletedRecord) {
+      return prisma.deviceModel.update({
+        where: { id: deletedRecord.id },
+        data: { seriesId, isDeleted: false, deletedAt: null },
+        include: { series: { select: { id: true, name: true } } },
+      });
+    }
     return prisma.deviceModel.create({
       data: { name, seriesId },
       include: { series: { select: { id: true, name: true } } },
@@ -109,7 +124,8 @@ class AttributesService {
     const data = {};
     if (name !== undefined) {
       data.name = this.#requireString(name, 'Model name');
-      await this.#assertUnique('deviceModel', { name: data.name }, 'Model name already exists.', id);
+      const deletedRecord = await this.#checkUniqueAndGetDeleted('deviceModel', { name: data.name }, 'Model name already exists.', id);
+      if (deletedRecord) throw new AppError('Name is currently used by a deleted model. Please use a different name.', 409);
     }
     if (seriesId !== undefined) {
       data.seriesId = this.#requireString(seriesId, 'Series ID');
@@ -133,8 +149,10 @@ class AttributesService {
 
   async createCondition({ name }) {
     name = this.#requireString(name, 'Condition name');
-    await this.#assertUnique('condition', { name }, 'Condition name already exists.');
-    // basePrice defaults to 0 as defined in the schema
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('condition', { name }, 'Condition name already exists.');
+    if (deletedRecord) {
+      return prisma.condition.update({ where: { id: deletedRecord.id }, data: { isDeleted: false, deletedAt: null } });
+    }
     return prisma.condition.create({ data: { name } });
   }
 
@@ -152,7 +170,8 @@ class AttributesService {
   async updateCondition(id, { name }) {
     await this.#findOrFail('condition', id, 'Condition');
     name = this.#requireString(name, 'Condition name');
-    await this.#assertUnique('condition', { name }, 'Condition name already exists.', id);
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('condition', { name }, 'Condition name already exists.', id);
+    if (deletedRecord) throw new AppError('Name is currently used by a deleted condition. Please use a different name.', 409);
     return prisma.condition.update({
       where: { id },
       data: { name },
@@ -192,7 +211,10 @@ class AttributesService {
 
   async createColor({ name }) {
     name = this.#requireString(name, 'Color name');
-    await this.#assertUnique('color', { name }, 'Color name already exists.');
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('color', { name }, 'Color name already exists.');
+    if (deletedRecord) {
+      return prisma.color.update({ where: { id: deletedRecord.id }, data: { isDeleted: false, deletedAt: null } });
+    }
     return prisma.color.create({ data: { name } });
   }
 
@@ -207,7 +229,8 @@ class AttributesService {
   async updateColor(id, { name }) {
     await this.#findOrFail('color', id, 'Color');
     name = this.#requireString(name, 'Color name');
-    await this.#assertUnique('color', { name }, 'Color name already exists.', id);
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('color', { name }, 'Color name already exists.', id);
+    if (deletedRecord) throw new AppError('Name is currently used by a deleted color. Please use a different name.', 409);
     return prisma.color.update({ where: { id }, data: { name } });
   }
 
@@ -222,7 +245,10 @@ class AttributesService {
 
   async createStorageOption({ name }) {
     name = this.#requireString(name, 'Storage name');
-    await this.#assertUnique('storageOption', { name }, 'Storage option already exists.');
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('storageOption', { name }, 'Storage option already exists.');
+    if (deletedRecord) {
+      return prisma.storageOption.update({ where: { id: deletedRecord.id }, data: { isDeleted: false, deletedAt: null } });
+    }
     return prisma.storageOption.create({ data: { name } });
   }
 
@@ -237,7 +263,8 @@ class AttributesService {
   async updateStorageOption(id, { name }) {
     await this.#findOrFail('storageOption', id, 'Storage option');
     name = this.#requireString(name, 'Storage name');
-    await this.#assertUnique('storageOption', { name }, 'Storage option already exists.', id);
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('storageOption', { name }, 'Storage option already exists.', id);
+    if (deletedRecord) throw new AppError('Name is currently used by a deleted storage option. Please use a different name.', 409);
     return prisma.storageOption.update({ where: { id }, data: { name } });
   }
 
@@ -252,7 +279,10 @@ class AttributesService {
 
   async createRamOption({ name }) {
     name = this.#requireString(name, 'RAM name');
-    await this.#assertUnique('ramOption', { name }, 'RAM option already exists.');
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('ramOption', { name }, 'RAM option already exists.');
+    if (deletedRecord) {
+      return prisma.ramOption.update({ where: { id: deletedRecord.id }, data: { isDeleted: false, deletedAt: null } });
+    }
     return prisma.ramOption.create({ data: { name } });
   }
 
@@ -267,13 +297,32 @@ class AttributesService {
   async updateRamOption(id, { name }) {
     await this.#findOrFail('ramOption', id, 'RAM option');
     name = this.#requireString(name, 'RAM name');
-    await this.#assertUnique('ramOption', { name }, 'RAM option already exists.', id);
+    const deletedRecord = await this.#checkUniqueAndGetDeleted('ramOption', { name }, 'RAM option already exists.', id);
+    if (deletedRecord) throw new AppError('Name is currently used by a deleted RAM option. Please use a different name.', 409);
     return prisma.ramOption.update({ where: { id }, data: { name } });
   }
 
   async deleteRamOption(id) {
     await this.#findOrFail('ramOption', id, 'RAM option');
     return this.#safeDelete('ramOption', id, 'RAM option');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // CONSOLIDATED ALL-OPTIONS (For product create/update forms)
+  // ─────────────────────────────────────────────────────────────
+
+  async getAllAttributeOptions() {
+    const [categories, series, models, conditions, colors, storageOptions, ramOptions] = await Promise.all([
+      prisma.category.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+      prisma.series.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+      prisma.deviceModel.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, seriesId: true } }),
+      prisma.condition.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, basePrice: true } }),
+      prisma.color.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+      prisma.storageOption.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+      prisma.ramOption.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    ]);
+
+    return { categories, series, models, conditions, colors, storageOptions, ramOptions };
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -299,13 +348,19 @@ class AttributesService {
   }
 
   /**
-   * Check for a duplicate name, optionally excluding the record being updated.
+   * Check for a duplicate name.
+   * Returns the soft-deleted existing record if one exists, so the caller can restore it.
    */
-  async #assertUnique(model, where, message, excludeId = null) {
-    const existing = await prisma[model].findUnique({ where });
+  async #checkUniqueAndGetDeleted(model, where, message, excludeId = null) {
+    const existing = await prisma[model].findFirst({ where, includeDeleted: true });
+    
     if (existing && existing.id !== excludeId) {
-      throw new AppError(message, 409);
+      if (!existing.isDeleted) {
+        throw new AppError(message, 409);
+      }
+      return existing; // It is deleted, we can restore it!
     }
+    return null;
   }
 
   /**

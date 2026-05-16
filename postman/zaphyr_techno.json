@@ -159,6 +159,18 @@
           "name": "attributes",
           "item": [
             {
+              "name": "Get All Attribute Options",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/attributes/all-options",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "attributes", "all-options"]
+                }
+              }
+            },
+            {
               "name": "Category",
               "item": [
                 {
@@ -723,6 +735,105 @@
                   }
                 }
               ]
+            }
+          ]
+        },
+        {
+          "name": "products",
+          "item": [
+            {
+              "name": "Create Product",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "title", "value": "iPhone 15 Pro Max", "type": "text" },
+                    { "key": "categoryId", "value": "CATEGORY_ID_HERE", "type": "text" },
+                    { "key": "seriesId", "value": "SERIES_ID_HERE", "type": "text" },
+                    { "key": "deviceModelId", "value": "MODEL_ID_HERE", "type": "text" },
+                    { "key": "conditionId", "value": "CONDITION_ID_HERE", "type": "text" },
+                    { "key": "basePrice", "value": "1200000", "type": "text" },
+                    { "key": "stockQuantity", "value": "10", "type": "text" },
+                    { "key": "colorIds", "value": "[\"COLOR_ID_1\", \"COLOR_ID_2\"]", "type": "text" },
+                    { "key": "storageOptionIds", "value": "[\"STORAGE_ID_1\", \"STORAGE_ID_2\"]", "type": "text" },
+                    { "key": "ramOptionIds", "value": "[\"RAM_ID_1\"]", "type": "text" },
+                    { "key": "introduction", "value": "Write something about the phone...", "type": "text" },
+                    { "key": "faqs", "value": "[{\"question\":\"What is this?\",\"answer\":\"A phone.\"}]", "type": "text" },
+                    { "key": "listingStatus", "value": "ACTIVE", "type": "text" },
+                    { "key": "images", "type": "file", "src": [] }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/products",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "products"]
+                }
+              }
+            },
+            {
+              "name": "Get All Products",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/products",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "products"],
+                  "query": [
+                    { "key": "categoryId", "value": "", "disabled": true },
+                    { "key": "conditionId", "value": "", "disabled": true },
+                    { "key": "listingStatus", "value": "ACTIVE", "disabled": true }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Product By ID",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/products/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "products", ":id"],
+                  "variable": [{ "key": "id", "value": "" }]
+                }
+              }
+            },
+            {
+              "name": "Update Product",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "title", "value": "iPhone 15 Pro Max", "type": "text" },
+                    { "key": "basePrice", "value": "1199.00", "type": "text" }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/products/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "products", ":id"],
+                  "variable": [{ "key": "id", "value": "" }]
+                }
+              }
+            },
+            {
+              "name": "Delete Product",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/products/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "products", ":id"],
+                  "variable": [{ "key": "id", "value": "" }]
+                }
+              }
             }
           ]
         }
