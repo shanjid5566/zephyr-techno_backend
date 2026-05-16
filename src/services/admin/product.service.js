@@ -301,11 +301,11 @@ class ProductService {
    * Get all products with optional filters
    */
   async getAllProducts(query) {
-    const { categoryId, listingStatus } = query;
+    const { categoryId, listingStatus, conditionId } = query;
 
     const where = {};
-    if (categoryId) where.categoryId = categoryId;
     if (listingStatus) where.listingStatus = listingStatus;
+    if (conditionId) where.conditionId = conditionId;
 
     const products = await prisma.product.findMany({
       where,
