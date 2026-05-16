@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import productController from '../../controllers/admin/product.controller.js';
-import { authenticate, adminGuard } from '../../middleware/auth.middleware.js';
-import upload from '../../middleware/upload.middleware.js';
+import productController from '../controllers/product.controller.js';
+import { authenticate, adminGuard } from '../middleware/auth.middleware.js';
+import upload from '../middleware/upload.middleware.js';
 
 const productRoutes = Router();
 

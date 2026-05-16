@@ -2,10 +2,10 @@ import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import adminAttributesRoutes from './routes/attributes.routes.js';
-import adminProductRoutes from './routes/admin/product.routes.js';
+import adminProductRoutes from './routes/product.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import orderRoutes from './routes/order.routes.js';
-import adminOrderRoutes from './routes/admin/order.routes.js';
+import adminOrderRoutes from './routes/admin.order.routes.js';
 import env from './config/env.js';
 
 const app = express();

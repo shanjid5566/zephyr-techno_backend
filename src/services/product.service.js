@@ -1,6 +1,6 @@
-import prisma from "../../utils/prisma.js";
-import AppError from "../../utils/app-error.js";
-import { buildImageUrl } from "../../utils/url.js";
+import prisma from "../utils/prisma.js";
+import AppError from "../utils/app-error.js";
+import { buildImageUrl } from "../utils/url.js";
 
 class ProductService {
   /**

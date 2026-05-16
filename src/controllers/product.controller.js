@@ -1,9 +1,8 @@
-import productService from '../../services/admin/product.service.js';
-import asyncHandler from '../../utils/async-handler.js';
+import productService from '../services/product.service.js';
+import asyncHandler from '../utils/async-handler.js';
 
 class ProductController {
   createProduct = asyncHandler(async (req, res) => {
-    // req.files is populated by multer array()
     const data = await productService.createProduct(req.body, req.files);
     res.status(201).json({ 
       success: true, 
