@@ -15,6 +15,12 @@ enum UserRole {
   ADMIN
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
 enum ProductListingStatus {
   ACTIVE
   INACTIVE
@@ -78,6 +84,7 @@ model User {
   passwordResetOtpExpiresAt     DateTime?
   passwordResetOtpVerifiedAt    DateTime?
   role                          UserRole  @default(CUSTOMER)
+  status                        UserStatus @default(ACTIVE)
   createdAt                     DateTime  @default(now())
   updatedAt                     DateTime  @updatedAt
 

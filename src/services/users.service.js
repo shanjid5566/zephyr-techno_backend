@@ -35,6 +35,7 @@ class UserService {
           lastName: true,
           phone: true,
           role: true,
+          status: true,
           isEmailVerified: true,
           createdAt: true,
         },
@@ -57,6 +58,7 @@ class UserService {
         lastName: true,
         phone: true,
         role: true,
+        status: true,
         isEmailVerified: true,
         createdAt: true,
         updatedAt: true,
@@ -79,9 +81,41 @@ class UserService {
   }
 
   async deleteUser(id) {
+    // Soft-delete via status change to keep records auditable and reversible
+    const updated = await this.changeUserStatus(id, 'DELETED');
+    return updated;
+  }
+
+  async changeUserStatus(id, status) {
+    const allowed = ['ACTIVE', 'SUSPENDED', 'DELETED'];
+    if (!allowed.includes(status)) throw new AppError('Invalid status', 400);
+
     try {
-      await prisma.user.delete({ where: { id } });
-      return true;
+      const data = { status };
+      if (status === 'DELETED') {
+        data.isDeleted = true;
+        data.deletedAt = new Date();
+      }
+
+      const updated = await prisma.user.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          role: true,
+          status: true,
+          isEmailVerified: true,
+          isDeleted: true,
+          deletedAt: true,
+          createdAt: true,
+        },
+      });
+
+      return updated;
     } catch (err) {
       if (err.code === 'P2025') throw new AppError('User not found', 404);
       throw err;

@@ -876,15 +876,7 @@
               "request": {
                 "method": "PATCH",
                 "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
-                "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"UpdatedName\",\n  \"role\": \"ADMIN\"\n}" },
-                "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","users",":id"] }
-              }
-            },
-            {
-              "name": "Delete User",
-              "request": {
-                "method": "DELETE",
-                "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+                "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"UpdatedName\",\n  \"role\": \"ADMIN\",\n  \"status\": \"SUSPENDED\"  \n}\n", "options": { "raw": { "language": "json" } } },
                 "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","users",":id"] }
               }
             }

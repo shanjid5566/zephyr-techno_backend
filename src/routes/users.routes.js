@@ -11,8 +11,8 @@ const adminRouter = Router();
 adminRouter.use(authenticate, adminGuard);
 adminRouter.get('/', usersController.getAllUsers);
 adminRouter.get('/:id', usersController.getUserById);
+// Single endpoint for updates and status changes (including soft-delete)
 adminRouter.patch('/:id', usersController.updateUser);
-adminRouter.delete('/:id', usersController.deleteUser);
 
 export default publicRouter;
 export { adminRouter };

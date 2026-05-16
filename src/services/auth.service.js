@@ -147,11 +147,28 @@ class AuthService {
 
     this.#requireJwtSecret();
 
-    // Fetch safe fields + passwordHash (needed only here)
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { ...SANITIZE_SELECT, passwordHash: true },
-    });
+    // Fetch safe fields + passwordHash and status (needed here).
+    // Some environments may still be using an older generated Prisma client
+    // that doesn't include `status`. Try including `status` first, and
+    // fall back to a query without it if the client rejects the field.
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email },
+        select: { ...SANITIZE_SELECT, passwordHash: true, status: true },
+      });
+    } catch (err) {
+      // If Prisma reports an unknown field, retry without `status`.
+      const msg = String(err && err.message || '');
+      if (msg.includes('Unknown field `status`') || msg.includes('Unknown input')) {
+        user = await prisma.user.findUnique({
+          where: { email },
+          select: { ...SANITIZE_SELECT, passwordHash: true },
+        });
+      } else {
+        throw err;
+      }
+    }
 
     if (!user) {
       throw new AppError('No account found with this email address.', 404);
@@ -159,6 +176,10 @@ class AuthService {
 
     if (!user.isEmailVerified) {
       throw new AppError('Please verify your email before logging in.', 403);
+    }
+
+    if (user.status && user.status !== 'ACTIVE') {
+      throw new AppError('Account is not active. Please contact support.', 403);
     }
 
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
