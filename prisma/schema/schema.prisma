@@ -146,39 +146,45 @@ model DeviceModel {
 }
 
 model Condition {
-  id              String           @id @default(uuid())
-  name            String           @unique
-  basePrice       Decimal          @default(0) @db.Decimal(12, 2)
-  productVariants ProductVariant[]
-  sellRequests    SellRequest[]
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?
+  id           String        @id @default(uuid())
+  name         String        @unique
+  basePrice    Decimal       @default(0) @db.Decimal(12, 2)
+  products     Product[]
+  sellRequests SellRequest[]
+  isDeleted    Boolean       @default(false)
+  deletedAt    DateTime?
 
   @@index([name])
 }
 
 model Color {
-  id              String           @id @default(uuid())
-  name            String           @unique
-  productVariants ProductVariant[]
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?
+  id         String         @id @default(uuid())
+  name       String         @unique
+  products   ProductColor[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  isDeleted  Boolean        @default(false)
+  deletedAt  DateTime?
 }
 
 model StorageOption {
-  id              String           @id @default(uuid())
-  name            String           @unique
-  productVariants ProductVariant[]
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?
+  id         String                  @id @default(uuid())
+  name       String                  @unique
+  products   ProductStorageOption[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  isDeleted  Boolean                 @default(false)
+  deletedAt  DateTime?
 }
 
 model RamOption {
-  id              String           @id @default(uuid())
-  name            String           @unique
-  productVariants ProductVariant[]
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?
+  id         String             @id @default(uuid())
+  name       String             @unique
+  products   ProductRamOption[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  isDeleted  Boolean            @default(false)
+  deletedAt  DateTime?
 }
 
 // =====================================================================================
@@ -191,11 +197,13 @@ model Product {
   description   String
   introduction  String?
   basePrice     Decimal              @db.Decimal(12, 2)
+  stockQuantity Int                  @default(0)
   listingStatus ProductListingStatus @default(INACTIVE)
 
   categoryId    String
   seriesId      String
   deviceModelId String
+  conditionId   String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -203,20 +211,29 @@ model Product {
   category    Category    @relation(fields: [categoryId], references: [id])
   series      Series      @relation(fields: [seriesId], references: [id])
   deviceModel DeviceModel @relation(fields: [deviceModelId], references: [id])
+  condition   Condition   @relation(fields: [conditionId], references: [id])
 
-  productGalleries ProductGallery[]
-  productFaqs      ProductFaq[]
-  productVariants  ProductVariant[]
-  highlights       ProductHighlight[]
-  specifications   ProductSpecification[]
-  reviews          Review[]
-  isDeleted        Boolean                @default(false)
-  deletedAt        DateTime?
+  productGalleries  ProductGallery[]
+  productFaqs       ProductFaq[]
+  highlights        ProductHighlight[]
+  specifications    ProductSpecification[]
+  reviews           Review[]
+  colors            ProductColor[]
+  storageOptions    ProductStorageOption[]
+  ramOptions        ProductRamOption[]
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  isDeleted         Boolean                @default(false)
+  deletedAt         DateTime?
 
   @@index([categoryId])
   @@index([seriesId])
   @@index([deviceModelId])
+  @@index([conditionId])
   @@index([listingStatus])
+  @@index([isDeleted])                      // Index for soft-delete filter
+  @@index([categoryId, listingStatus, isDeleted])  // Composite index for common filter queries
+  @@index([createdAt(sort: Desc)])          // Index for sorting by newest
 }
 
 model ProductHighlight {
@@ -272,33 +289,50 @@ model ProductFaq {
   @@index([productId])
 }
 
-model ProductVariant {
-  id              String               @id @default(uuid())
+// Bridge tables for many-to-many product options
+model ProductColor {
+  id        String   @id @default(uuid())
+  productId String
+  colorId   String
+  createdAt DateTime @default(now())
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color     Color    @relation(fields: [colorId], references: [id])
+  isDeleted Boolean  @default(false)
+  deletedAt DateTime?
+
+  @@unique([productId, colorId])
+  @@index([productId])
+}
+
+model ProductStorageOption {
+  id              String        @id @default(uuid())
   productId       String
-  colorId         String
   storageOptionId String
-  ramOptionId     String
-  conditionId     String
-  sku             String               @unique
-  finalPrice      Decimal              @db.Decimal(12, 2)
-  stockQuantity   Int                  @default(0)
-  variantStatus   ProductListingStatus @default(INACTIVE)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  createdAt       DateTime      @default(now())
 
   product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  color         Color         @relation(fields: [colorId], references: [id])
   storageOption StorageOption @relation(fields: [storageOptionId], references: [id])
-  ramOption     RamOption     @relation(fields: [ramOptionId], references: [id])
-  condition     Condition     @relation(fields: [conditionId], references: [id])
+  isDeleted     Boolean       @default(false)
+  deletedAt     DateTime?
 
-  cartItems  CartItem[]
-  orderItems OrderItem[]
-  isDeleted  Boolean     @default(false)
-  deletedAt  DateTime?
-
+  @@unique([productId, storageOptionId])
   @@index([productId])
-  @@index([conditionId])
+}
+
+model ProductRamOption {
+  id          String    @id @default(uuid())
+  productId   String
+  ramOptionId String
+  createdAt   DateTime  @default(now())
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ramOption RamOption @relation(fields: [ramOptionId], references: [id])
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  @@unique([productId, ramOptionId])
+  @@index([productId])
 }
 
 // =====================================================================================
@@ -319,19 +353,26 @@ model Cart {
 }
 
 model CartItem {
-  id               String   @id @default(uuid())
-  cartId           String
-  productVariantId String
-  quantity         Int      @default(1)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(uuid())
+  cartId          String
+  productId       String
+  colorId         String
+  storageOptionId String
+  ramOptionId     String
+  quantity        Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-  isDeleted      Boolean        @default(false)
-  deletedAt      DateTime?
+  cart          Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color         Color         @relation(fields: [colorId], references: [id])
+  storageOption StorageOption @relation(fields: [storageOptionId], references: [id])
+  ramOption     RamOption     @relation(fields: [ramOptionId], references: [id])
+  isDeleted     Boolean       @default(false)
+  deletedAt     DateTime?
 
   @@index([cartId])
+  @@index([productId])
 }
 
 model Order {
@@ -367,19 +408,25 @@ model Order {
 }
 
 model OrderItem {
-  id               String  @id @default(uuid())
-  orderId          String
-  productVariantId String
-  quantity         Int
-  priceAtPurchase  Decimal @db.Decimal(12, 2)
+  id              String  @id @default(uuid())
+  orderId         String
+  productId       String
+  colorId         String
+  storageOptionId String
+  ramOptionId     String
+  quantity        Int
+  priceAtPurchase Decimal @db.Decimal(12, 2)
 
-  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
-  isDeleted      Boolean        @default(false)
-  deletedAt      DateTime?
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+  color         Color         @relation(fields: [colorId], references: [id])
+  storageOption StorageOption @relation(fields: [storageOptionId], references: [id])
+  ramOption     RamOption     @relation(fields: [ramOptionId], references: [id])
+  isDeleted     Boolean       @default(false)
+  deletedAt     DateTime?
 
   @@index([orderId])
-  @@index([productVariantId])
+  @@index([productId])
 }
 
 // =====================================================================================
@@ -446,7 +493,7 @@ model SellRequest {
   email          String
   phone          String
   deviceName     String
-  conditionId    String
+  conditionId    String?
   baseOfferPrice Decimal    @db.Decimal(12, 2)
   status         SellStatus @default(SUBMITTED)
   serialNumber   String?
@@ -455,7 +502,7 @@ model SellRequest {
   updatedAt      DateTime   @updatedAt
 
   user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  condition Condition     @relation(fields: [conditionId], references: [id])
+  condition Condition?    @relation(fields: [conditionId], references: [id])
   images    DeviceImage[]
   isDeleted Boolean       @default(false)
   deletedAt DateTime?

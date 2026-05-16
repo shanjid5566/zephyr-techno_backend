@@ -11,9 +11,23 @@ if (!connectionString) {
   throw new AppError('DATABASE_URL is not configured.', 500);
 }
 
-const adapter = new PrismaPg({ connectionString });
+const adapter = new PrismaPg({ 
+  connectionString,
+  // Connection pool configuration for better performance
+  pool: {
+    max: 10,              // Maximum number of connections in the pool
+    min: 2,               // Minimum number of connections to maintain
+    idleTimeoutMillis: 30000,  // Close idle connections after 30 seconds
+    connectionTimeoutMillis: 5000,  // Timeout for acquiring a connection
+  }
+});
 
-const basePrisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+const basePrisma = globalForPrisma.prisma ?? new PrismaClient({ 
+  adapter,
+  log: process.env.NODE_ENV === 'development' 
+    ? ['warn', 'error'] 
+    : ['error'],  // Reduce logging overhead in production
+});
 
 const prisma = basePrisma.$extends({
   query: {

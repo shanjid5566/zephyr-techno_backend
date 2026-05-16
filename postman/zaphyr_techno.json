@@ -749,18 +749,20 @@
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "title", "value": "iPhone 15 Pro Max", "type": "text" },
+                    { "key": "title", "value": "Samsung Galaxy S23 FE", "type": "text" },
                     { "key": "categoryId", "value": "CATEGORY_ID_HERE", "type": "text" },
                     { "key": "seriesId", "value": "SERIES_ID_HERE", "type": "text" },
                     { "key": "deviceModelId", "value": "MODEL_ID_HERE", "type": "text" },
                     { "key": "conditionId", "value": "CONDITION_ID_HERE", "type": "text" },
-                    { "key": "basePrice", "value": "1200000", "type": "text" },
-                    { "key": "stockQuantity", "value": "10", "type": "text" },
+                    { "key": "basePrice", "value": "45000", "type": "text" },
+                    { "key": "stockQuantity", "value": "50", "type": "text" },
                     { "key": "colorIds", "value": "[\"COLOR_ID_1\", \"COLOR_ID_2\"]", "type": "text" },
                     { "key": "storageOptionIds", "value": "[\"STORAGE_ID_1\", \"STORAGE_ID_2\"]", "type": "text" },
-                    { "key": "ramOptionIds", "value": "[\"RAM_ID_1\"]", "type": "text" },
-                    { "key": "introduction", "value": "Write something about the phone...", "type": "text" },
-                    { "key": "faqs", "value": "[{\"question\":\"What is this?\",\"answer\":\"A phone.\"}]", "type": "text" },
+                    { "key": "ramOptionIds", "value": "[\"RAM_ID_1\", \"RAM_ID_2\"]", "type": "text" },
+                    { "key": "introduction", "value": "Premium flagship phone with amazing camera and performance", "type": "text" },
+                    { "key": "faqs", "value": "[{\"question\":\"What colors are available?\",\"answer\":\"Titanium Blue and Phantom Black\"},{\"question\":\"Is warranty included?\",\"answer\":\"Yes, 1 year official warranty\"}]", "type": "text" },
+                    { "key": "highlights", "value": "[{\"title\":\"Amazing Display\",\"description\":\"6.4 inch Dynamic AMOLED 2X with 120Hz refresh rate\",\"iconUrl\":\"\",\"displayOrder\":0},{\"title\":\"Powerful Performance\",\"description\":\"Snapdragon 8 Gen 2 processor with 8GB RAM\",\"iconUrl\":\"\",\"displayOrder\":1},{\"title\":\"Pro Camera\",\"description\":\"50MP triple camera system with OIS\",\"iconUrl\":\"\",\"displayOrder\":2}]", "type": "text" },
+                    { "key": "specifications", "value": "[{\"name\":\"Screen Size\",\"value\":\"6.4 inches\",\"displayOrder\":0},{\"name\":\"Processor\",\"value\":\"Snapdragon 8 Gen 2\",\"displayOrder\":1},{\"name\":\"Battery\",\"value\":\"4500mAh\",\"displayOrder\":2},{\"name\":\"Camera\",\"value\":\"50MP + 12MP + 8MP\",\"displayOrder\":3},{\"name\":\"OS\",\"value\":\"Android 14\",\"displayOrder\":4}]", "type": "text" },
                     { "key": "listingStatus", "value": "ACTIVE", "type": "text" },
                     { "key": "images", "type": "file", "src": [] }
                   ]
@@ -783,7 +785,6 @@
                   "path": ["api", "admin", "products"],
                   "query": [
                     { "key": "categoryId", "value": "", "disabled": true },
-                    { "key": "conditionId", "value": "", "disabled": true },
                     { "key": "listingStatus", "value": "ACTIVE", "disabled": true }
                   ]
                 }
@@ -798,7 +799,7 @@
                   "raw": "{{baseUrl}}/api/admin/products/:id",
                   "host": ["{{baseUrl}}"],
                   "path": ["api", "admin", "products", ":id"],
-                  "variable": [{ "key": "id", "value": "" }]
+                  "variable": [{ "key": "id", "value": "PRODUCT_ID_HERE" }]
                 }
               }
             },
@@ -810,15 +811,26 @@
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "title", "value": "iPhone 15 Pro Max", "type": "text" },
-                    { "key": "basePrice", "value": "1199.00", "type": "text" }
+                    { "key": "title", "value": "Samsung Galaxy S23 FE (Updated)", "type": "text", "disabled": true },
+                    { "key": "basePrice", "value": "42000", "type": "text", "disabled": true },
+                    { "key": "stockQuantity", "value": "75", "type": "text", "disabled": true },
+                    { "key": "listingStatus", "value": "ACTIVE", "type": "text", "disabled": true },
+                    { "key": "conditionId", "value": "CONDITION_ID_HERE", "type": "text", "disabled": true },
+                    { "key": "colorIds", "value": "[\"COLOR_ID_1\", \"COLOR_ID_2\", \"COLOR_ID_3\"]", "type": "text", "disabled": true },
+                    { "key": "storageOptionIds", "value": "[\"STORAGE_ID_1\"]", "type": "text", "disabled": true },
+                    { "key": "ramOptionIds", "value": "[\"RAM_ID_1\", \"RAM_ID_2\"]", "type": "text", "disabled": true },
+                    { "key": "introduction", "value": "Updated description...", "type": "text", "disabled": true },
+                    { "key": "faqs", "value": "[{\"question\":\"Updated question?\",\"answer\":\"Updated answer\"}]", "type": "text", "disabled": true },
+                    { "key": "highlights", "value": "[{\"title\":\"New Feature\",\"description\":\"Updated highlight\",\"iconUrl\":\"\",\"displayOrder\":0}]", "type": "text", "disabled": true },
+                    { "key": "specifications", "value": "[{\"name\":\"Screen Size\",\"value\":\"6.5 inches\",\"displayOrder\":0}]", "type": "text", "disabled": true },
+                    { "key": "images", "type": "file", "src": [], "disabled": true }
                   ]
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/admin/products/:id",
                   "host": ["{{baseUrl}}"],
                   "path": ["api", "admin", "products", ":id"],
-                  "variable": [{ "key": "id", "value": "" }]
+                  "variable": [{ "key": "id", "value": "PRODUCT_ID_HERE" }]
                 }
               }
             },
@@ -831,7 +843,7 @@
                   "raw": "{{baseUrl}}/api/admin/products/:id",
                   "host": ["{{baseUrl}}"],
                   "path": ["api", "admin", "products", ":id"],
-                  "variable": [{ "key": "id", "value": "" }]
+                  "variable": [{ "key": "id", "value": "PRODUCT_ID_HERE" }]
                 }
               }
             }

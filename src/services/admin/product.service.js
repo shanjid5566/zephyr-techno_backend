@@ -17,62 +17,18 @@ class ProductService {
 
   /**
    * Master formatter: transforms raw Prisma product into a clean frontend-friendly shape.
-   * - Groups variants into unique conditions, colors, storageOptions, ramOptions
+   * - Extracts available options from bridge tables
    * - Removes internal soft-delete fields
    * - Formats image URLs
    */
   #formatProduct(product) {
-    const variants = product.productVariants || [];
-
-    // Extract unique options from all variants using Maps to deduplicate by ID
-    const conditionMap = new Map();
-    const colorMap = new Map();
-    const storageMap = new Map();
-    const ramMap = new Map();
-
-    for (const v of variants) {
-      if (v.condition && !conditionMap.has(v.conditionId)) {
-        conditionMap.set(v.conditionId, {
-          id: v.conditionId,
-          name: v.condition.name,
-        });
-      }
-      if (v.color && !colorMap.has(v.colorId)) {
-        colorMap.set(v.colorId, { id: v.colorId, name: v.color.name });
-      }
-      if (v.storageOption && !storageMap.has(v.storageOptionId)) {
-        storageMap.set(v.storageOptionId, {
-          id: v.storageOptionId,
-          name: v.storageOption.name,
-        });
-      }
-      if (v.ramOption && !ramMap.has(v.ramOptionId)) {
-        ramMap.set(v.ramOptionId, {
-          id: v.ramOptionId,
-          name: v.ramOption.name,
-        });
-      }
-    }
-
-    // Format variants (strip soft-delete internals)
-    const formattedVariants = variants.map((v) => ({
-      id: v.id,
-      sku: v.sku,
-      finalPrice: v.finalPrice,
-      stockQuantity: v.stockQuantity,
-      variantStatus: v.variantStatus,
-      conditionId: v.conditionId,
-      colorId: v.colorId,
-      storageOptionId: v.storageOptionId,
-      ramOptionId: v.ramOptionId,
-    }));
-
     return {
       id: product.id,
       title: product.title,
       description: product.description,
       introduction: product.introduction,
       basePrice: product.basePrice,
+      stockQuantity: product.stockQuantity || 0,
       listingStatus: product.listingStatus,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
@@ -86,6 +42,9 @@ class ProductService {
         : null,
       deviceModel: product.deviceModel
         ? { id: product.deviceModel.id, name: product.deviceModel.name }
+        : null,
+      condition: product.condition
+        ? { id: product.condition.id, name: product.condition.name }
         : null,
 
       // Images with full URLs
@@ -113,15 +72,19 @@ class ProductService {
         displayOrder: s.displayOrder,
       })),
 
-      // Grouped unique options (for frontend selectors)
-      availableConditions: [...conditionMap.values()],
-      availableColors: [...colorMap.values()],
-      availableStorageOptions: [...storageMap.values()],
-      availableRamOptions: [...ramMap.values()],
-
-      // All raw variant combinations (for frontend to resolve selections)
-      variants: formattedVariants,
-      totalVariants: formattedVariants.length,
+      // Available options from bridge tables
+      availableColors: (product.colors || []).map((pc) => ({
+        id: pc.color.id,
+        name: pc.color.name,
+      })),
+      availableStorageOptions: (product.storageOptions || []).map((ps) => ({
+        id: ps.storageOption.id,
+        name: ps.storageOption.name,
+      })),
+      availableRamOptions: (product.ramOptions || []).map((pr) => ({
+        id: pr.ramOption.id,
+        name: pr.ramOption.name,
+      })),
     };
   }
 
@@ -130,10 +93,6 @@ class ProductService {
    * Returns only what is needed to render a product card.
    */
   #formatProductCard(product) {
-    const variants = product.productVariants || [];
-    // Use the first variant as the representative for the card display
-    const firstVariant = variants[0] || null;
-
     // First image as thumbnail
     const thumbnail = product.productGalleries?.[0]
       ? buildImageUrl(product.productGalleries[0].imageUrl)
@@ -143,6 +102,7 @@ class ProductService {
       id: product.id,
       title: product.title,
       basePrice: product.basePrice,
+      stockQuantity: product.stockQuantity || 0,
       listingStatus: product.listingStatus,
       thumbnail,
       category: product.category
@@ -154,15 +114,9 @@ class ProductService {
       deviceModel: product.deviceModel
         ? { id: product.deviceModel.id, name: product.deviceModel.name }
         : null,
-      // Condition badge from the first variant
-      condition: firstVariant?.condition ?? null,
-      // Representative storage & RAM from the first variant (for the card subtitle)
-      storage: firstVariant?.storageOption ?? null,
-      ram: firstVariant?.ramOption ?? null,
-      // Representative price & stock
-      price: firstVariant?.finalPrice ?? product.basePrice,
-      stockQuantity: firstVariant?.stockQuantity ?? 0,
-      totalVariants: variants.length,
+      condition: product.condition
+        ? { id: product.condition.id, name: product.condition.name }
+        : null,
       createdAt: product.createdAt,
     };
   }
@@ -175,13 +129,15 @@ class ProductService {
       title,
       introduction,
       basePrice,
+      stockQuantity,
       listingStatus,
       categoryId,
       seriesId,
       deviceModelId,
-      faqs,
       conditionId,
-      stockQuantity,
+      faqs,
+      highlights,
+      specifications,
       colorIds,
       storageOptionIds,
       ramOptionIds,
@@ -209,7 +165,7 @@ class ProductService {
     let productGalleries = [];
     if (files && files.length > 0) {
       productGalleries = files.map((file, index) => ({
-        imageUrl: file.path.replace(/\\/g, "/"), // store relative path
+        imageUrl: file.path.replace(/\\/g, "/"),
         displayOrder: index,
       }));
     }
@@ -233,6 +189,47 @@ class ProductService {
       }
     }
 
+    // Process Highlights
+    let productHighlights = [];
+    if (highlights) {
+      try {
+        const parsedHighlights = typeof highlights === "string" ? JSON.parse(highlights) : highlights;
+        if (Array.isArray(parsedHighlights)) {
+          productHighlights = parsedHighlights.map((h) => ({
+            title: h.title,
+            description: h.description,
+            iconUrl: h.iconUrl || null,
+            displayOrder: h.displayOrder || 0,
+          }));
+        }
+      } catch (err) {
+        throw new AppError(
+          "Invalid Highlights format. Must be a valid JSON array.",
+          400,
+        );
+      }
+    }
+
+    // Process Specifications
+    let productSpecifications = [];
+    if (specifications) {
+      try {
+        const parsedSpecs = typeof specifications === "string" ? JSON.parse(specifications) : specifications;
+        if (Array.isArray(parsedSpecs)) {
+          productSpecifications = parsedSpecs.map((s) => ({
+            name: s.name,
+            value: s.value,
+            displayOrder: s.displayOrder || 0,
+          }));
+        }
+      } catch (err) {
+        throw new AppError(
+          "Invalid Specifications format. Must be a valid JSON array.",
+          400,
+        );
+      }
+    }
+
     // Helper to safely parse JSON arrays from form-data
     const parseArray = (val) => {
       if (!val) return [];
@@ -240,7 +237,7 @@ class ProductService {
       try {
         return JSON.parse(val);
       } catch (e) {
-        return [val];
+        throw new AppError(`Invalid array format: ${val}`, 400);
       }
     };
 
@@ -255,30 +252,10 @@ class ProductService {
       );
     }
 
-    const variantsData = [];
     const parsedStock = parseInt(stockQuantity) || 0;
     const parsedPrice = Number(basePrice);
 
-    for (const color of colors) {
-      for (const storage of storages) {
-        for (const ram of rams) {
-          variantsData.push({
-            // Use scalar IDs directly - avoids Prisma FK pre-validation (saves ~32 queries)
-            conditionId,
-            colorId: color,
-            storageOptionId: storage,
-            ramOptionId: ram,
-            finalPrice: parsedPrice,
-            stockQuantity: parsedStock,
-            sku: `SKU-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-          });
-        }
-      }
-    }
-
-    // Use a transaction to:
-    // 1. Create product + galleries + FAQs in one query
-    // 2. Bulk-insert all variants with createMany (1 query regardless of count)
+    // Create product with bridge records in a transaction
     const product = await prisma.$transaction(async (tx) => {
       const created = await tx.product.create({
         data: {
@@ -286,73 +263,49 @@ class ProductService {
           description,
           introduction,
           basePrice: parsedPrice,
+          stockQuantity: parsedStock,
           listingStatus: listingStatus || "INACTIVE",
           categoryId,
           seriesId,
           deviceModelId,
+          conditionId,
           productGalleries: { create: productGalleries },
           productFaqs: { create: productFaqs },
+          highlights: { create: productHighlights },
+          specifications: { create: productSpecifications },
+          // Create bridge records for options
+          colors: {
+            create: colors.map((colorId) => ({ colorId })),
+          },
+          storageOptions: {
+            create: storages.map((storageId) => ({
+              storageOptionId: storageId,
+            })),
+          },
+          ramOptions: {
+            create: rams.map((ramId) => ({ ramOptionId: ramId })),
+          },
         },
         select: {
           id: true,
-          title: true,
-          basePrice: true,
-          listingStatus: true,
-          categoryId: true,
-          seriesId: true,
-          deviceModelId: true,
-          createdAt: true,
-          productGalleries: {
-            orderBy: { displayOrder: "asc" },
-            take: 1,
-            select: { imageUrl: true },
-          },
         },
-      });
-
-      // Bulk insert variants — createMany is a single INSERT statement
-      await tx.productVariant.createMany({
-        data: variantsData.map((v) => ({ ...v, productId: created.id })),
       });
 
       return created;
     });
 
-    // Return a lightweight card response — no need to re-fetch all 8 variants
-    return {
-      id: product.id,
-      title: product.title,
-      basePrice: product.basePrice,
-      listingStatus: product.listingStatus,
-      categoryId: product.categoryId,
-      seriesId: product.seriesId,
-      deviceModelId: product.deviceModelId,
-      thumbnail: product.productGalleries[0]
-        ? buildImageUrl(product.productGalleries[0].imageUrl)
-        : null,
-      totalVariants: variantsData.length,
-      createdAt: product.createdAt,
-    };
+    return product;
   }
 
   /**
    * Get all products with optional filters
    */
   async getAllProducts(query) {
-    const { categoryId, listingStatus, conditionId } = query;
+    const { categoryId, listingStatus } = query;
 
     const where = {};
     if (categoryId) where.categoryId = categoryId;
     if (listingStatus) where.listingStatus = listingStatus;
-
-    // Condition is on ProductVariant, so we filter products that have a variant with this condition
-    if (conditionId) {
-      where.productVariants = {
-        some: {
-          conditionId: conditionId,
-        },
-      };
-    }
 
     const products = await prisma.product.findMany({
       where,
@@ -360,20 +313,10 @@ class ProductService {
         category: { select: { id: true, name: true } },
         series: { select: { id: true, name: true } },
         deviceModel: { select: { id: true, name: true } },
-        // Only first gallery image needed for the thumbnail
+        condition: { select: { id: true, name: true } },
         productGalleries: {
           orderBy: { displayOrder: "asc" },
           take: 1,
-        },
-        productVariants: {
-          // Only first variant for the card summary (condition/storage/ram/price/stock)
-          take: 1,
-          orderBy: { createdAt: "asc" },
-          include: {
-            condition: { select: { id: true, name: true } },
-            storageOption: { select: { id: true, name: true } },
-            ramOption: { select: { id: true, name: true } },
-          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -392,15 +335,23 @@ class ProductService {
         category: { select: { id: true, name: true } },
         series: { select: { id: true, name: true } },
         deviceModel: { select: { id: true, name: true } },
+        condition: { select: { id: true, name: true } },
         productGalleries: true,
         productFaqs: true,
         highlights: true,
         specifications: true,
-        productVariants: {
+        colors: {
           include: {
-            condition: { select: { id: true, name: true } },
             color: { select: { id: true, name: true } },
+          },
+        },
+        storageOptions: {
+          include: {
             storageOption: { select: { id: true, name: true } },
+          },
+        },
+        ramOptions: {
+          include: {
             ramOption: { select: { id: true, name: true } },
           },
         },
@@ -418,175 +369,185 @@ class ProductService {
    * Update Product (Partial Update)
    */
   async updateProduct(id, data, files) {
-    // Check existence
-    const existingProduct = await this.getProductById(id);
-
-    const updateData = {};
-    const allowedFields = [
-      "title",
-      "description",
-      "introduction",
-      "basePrice",
-      "listingStatus",
-    ];
-
-    for (const field of allowedFields) {
-      if (data[field] !== undefined) {
-        updateData[field] =
-          field === "basePrice" ? Number(data[field]) : data[field];
-      }
-    }
-
-    if (data.categoryId)
-      updateData.category = { connect: { id: data.categoryId } };
-    if (data.seriesId) updateData.series = { connect: { id: data.seriesId } };
-    if (data.deviceModelId)
-      updateData.deviceModel = { connect: { id: data.deviceModelId } };
-
-    // If new images are uploaded, add them to the gallery
-    if (files && files.length > 0) {
-      const newGalleries = files.map((file, index) => ({
-        imageUrl: file.path.replace(/\\/g, "/"),
-        displayOrder: index, // We might need better displayOrder logic in production
-      }));
-
-      updateData.productGalleries = {
-        create: newGalleries,
-      };
-    }
-
-    // Process FAQs if provided. We overwrite existing ones.
-    if (data.faqs !== undefined) {
+    // Helper to safely parse JSON arrays from form-data
+    const parseArray = (val) => {
+      if (!val) return null;
+      if (Array.isArray(val)) return val;
       try {
-        const parsedFaqs =
-          typeof data.faqs === "string" ? JSON.parse(data.faqs) : data.faqs;
-        if (Array.isArray(parsedFaqs)) {
-          // Delete old FAQs and create new ones
-          await prisma.productFaq.deleteMany({ where: { productId: id } });
-          updateData.productFaqs = {
-            create: parsedFaqs.map((faq) => ({
-              question: faq.question,
-              answer: faq.answer,
-            })),
-          };
-        }
-      } catch (err) {
-        throw new AppError(
-          "Invalid FAQs format. Must be a valid JSON array.",
-          400,
-        );
+        return JSON.parse(val);
+      } catch (e) {
+        throw new AppError(`Invalid array format: ${val}`, 400);
+      }
+    };
+
+    // Parse all JSON fields upfront
+    let parsedFaqs = null;
+    let parsedHighlights = null;
+    let parsedSpecs = null;
+    let parsedColors = null;
+    let parsedStorages = null;
+    let parsedRams = null;
+
+    if (data.faqs !== undefined) {
+      parsedFaqs = parseArray(data.faqs);
+      if (parsedFaqs && !Array.isArray(parsedFaqs)) {
+        throw new AppError("Invalid FAQs format. Must be a valid JSON array.", 400);
       }
     }
 
-    // Process Variants if variant-related fields are provided
-    if (
-      data.conditionId ||
-      data.colorIds ||
-      data.storageOptionIds ||
-      data.ramOptionIds
-    ) {
-      // Helper to safely parse JSON arrays from form-data
-      const parseArray = (val) => {
-        if (!val) return [];
-        if (Array.isArray(val)) return val;
-        try {
-          return JSON.parse(val);
-        } catch (e) {
-          return [val];
-        }
-      };
-
-      const colors = parseArray(data.colorIds);
-      const storages = parseArray(data.storageOptionIds);
-      const rams = parseArray(data.ramOptionIds);
-
-      if (colors.length === 0 || storages.length === 0 || rams.length === 0) {
-        throw new AppError(
-          "At least one Color, Storage Option, and RAM Option must be selected when updating variants.",
-          400,
-        );
+    if (data.highlights !== undefined) {
+      parsedHighlights = parseArray(data.highlights);
+      if (parsedHighlights && !Array.isArray(parsedHighlights)) {
+        throw new AppError("Invalid Highlights format. Must be a valid JSON array.", 400);
       }
-
-      const variantsData = [];
-      const parsedStock = parseInt(data.stockQuantity) || 0;
-      // Use the new basePrice if provided, else keep existing
-      const parsedPrice =
-        data.basePrice !== undefined
-          ? Number(data.basePrice)
-          : Number(existingProduct.basePrice);
-      // Require conditionId if recreating variants
-      const condId =
-        data.conditionId || existingProduct.productVariants?.[0]?.conditionId;
-
-      if (!condId) {
-        throw new AppError(
-          "conditionId is required to recreate variants.",
-          400,
-        );
-      }
-
-      for (const color of colors) {
-        for (const storage of storages) {
-          for (const ram of rams) {
-            variantsData.push({
-              finalPrice: parsedPrice,
-              stockQuantity: parsedStock,
-              sku: `SKU-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-              condition: { connect: { id: condId } },
-              color: { connect: { id: color } },
-              storageOption: { connect: { id: storage } },
-              ramOption: { connect: { id: ram } },
-            });
-          }
-        }
-      }
-
-      // Delete old variants
-      await prisma.productVariant.deleteMany({ where: { productId: id } });
-
-      updateData.productVariants = {
-        create: variantsData,
-      };
     }
 
-    const updatedProduct = await prisma.product.update({
-      where: { id },
-      data: updateData,
-      include: {
-        category: { select: { id: true, name: true } },
-        series: { select: { id: true, name: true } },
-        deviceModel: { select: { id: true, name: true } },
-        productGalleries: true,
-        productFaqs: true,
-        highlights: true,
-        specifications: true,
-        productVariants: {
-          include: {
-            condition: { select: { id: true, name: true } },
-            color: { select: { id: true, name: true } },
-            storageOption: { select: { id: true, name: true } },
-            ramOption: { select: { id: true, name: true } },
-          },
+    if (data.specifications !== undefined) {
+      parsedSpecs = parseArray(data.specifications);
+      if (parsedSpecs && !Array.isArray(parsedSpecs)) {
+        throw new AppError("Invalid Specifications format. Must be a valid JSON array.", 400);
+      }
+    }
+
+    if (data.colorIds) parsedColors = parseArray(data.colorIds);
+    if (data.storageOptionIds) parsedStorages = parseArray(data.storageOptionIds);
+    if (data.ramOptionIds) parsedRams = parseArray(data.ramOptionIds);
+
+    // Use transaction for all operations
+    const updatedProduct = await prisma.$transaction(async (tx) => {
+      const updateData = {};
+      const allowedFields = [
+        "title",
+        "description",
+        "introduction",
+        "basePrice",
+        "stockQuantity",
+        "listingStatus",
+      ];
+
+      for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+          updateData[field] =
+            field === "basePrice" || field === "stockQuantity"
+              ? Number(data[field])
+              : data[field];
+        }
+      }
+
+      if (data.categoryId)
+        updateData.category = { connect: { id: data.categoryId } };
+      if (data.seriesId) updateData.series = { connect: { id: data.seriesId } };
+      if (data.deviceModelId)
+        updateData.deviceModel = { connect: { id: data.deviceModelId } };
+      if (data.conditionId)
+        updateData.condition = { connect: { id: data.conditionId } };
+
+      // If new images are uploaded, add them to the gallery
+      if (files && files.length > 0) {
+        const newGalleries = files.map((file, index) => ({
+          imageUrl: file.path.replace(/\\/g, "/"),
+          displayOrder: index,
+        }));
+
+        updateData.productGalleries = {
+          create: newGalleries,
+        };
+      }
+
+      // Use Prisma's nested writes with set: [] to replace arrays efficiently
+      if (parsedFaqs && Array.isArray(parsedFaqs)) {
+        updateData.productFaqs = {
+          deleteMany: {},
+          create: parsedFaqs.map((faq) => ({
+            question: faq.question,
+            answer: faq.answer,
+          })),
+        };
+      }
+
+      if (parsedHighlights && Array.isArray(parsedHighlights)) {
+        updateData.highlights = {
+          deleteMany: {},
+          create: parsedHighlights.map((h) => ({
+            title: h.title,
+            description: h.description,
+            iconUrl: h.iconUrl || null,
+            displayOrder: h.displayOrder || 0,
+          })),
+        };
+      }
+
+      if (parsedSpecs && Array.isArray(parsedSpecs)) {
+        updateData.specifications = {
+          deleteMany: {},
+          create: parsedSpecs.map((s) => ({
+            name: s.name,
+            value: s.value,
+            displayOrder: s.displayOrder || 0,
+          })),
+        };
+      }
+
+      if (parsedColors && parsedColors.length > 0) {
+        updateData.colors = {
+          deleteMany: {},
+          create: parsedColors.map((colorId) => ({ colorId })),
+        };
+      }
+
+      if (parsedStorages && parsedStorages.length > 0) {
+        updateData.storageOptions = {
+          deleteMany: {},
+          create: parsedStorages.map((storageId) => ({
+            storageOptionId: storageId,
+          })),
+        };
+      }
+
+      if (parsedRams && parsedRams.length > 0) {
+        updateData.ramOptions = {
+          deleteMany: {},
+          create: parsedRams.map((ramId) => ({ ramOptionId: ramId })),
+        };
+      }
+
+      // Execute the update with minimal select for fast response
+      // If product doesn't exist, Prisma will throw P2025 error
+      return await tx.product.update({
+        where: { id },
+        data: updateData,
+        select: {
+          id: true,
         },
-      },
+      });
+    }).catch((error) => {
+      // Handle Prisma P2025 error (Record not found)
+      if (error.code === 'P2025') {
+        throw new AppError('Product not found', 404);
+      }
+      throw error;
     });
 
-    return this.#formatProduct(updatedProduct);
+    return updatedProduct;
   }
 
   /**
    * Delete Product (Soft delete is handled by global Prisma extension)
    */
   async deleteProduct(id) {
-    // Verify existence
-    await this.getProductById(id);
-
     // The Prisma extension will automatically intercept this and convert it to an update (isDeleted: true)
-    await prisma.product.delete({
-      where: { id },
-    });
-
-    return true;
+    // If product doesn't exist, Prisma will throw P2025 error
+    try {
+      await prisma.product.delete({
+        where: { id },
+      });
+      return true;
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new AppError('Product not found', 404);
+      }
+      throw error;
+    }
   }
 }
 
