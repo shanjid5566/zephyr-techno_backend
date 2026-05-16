@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authenticate, adminGuard } from '../../middleware/auth.middleware.js';
-import ctrl from '../../controllers/admin/attributes.controller.js';
+import { authenticate, adminGuard } from '../middleware/auth.middleware.js';
+import ctrl from '../controllers/attributes.controller.js';
 
 const adminAttributesRoutes = Router();
 

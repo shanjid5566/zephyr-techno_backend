@@ -1,5 +1,5 @@
-import attributesService from '../../services/admin/attributes.service.js';
-import asyncHandler from '../../utils/async-handler.js';
+import attributesService from '../services/attributes.service.js';
+import asyncHandler from '../utils/async-handler.js';
 
 /**
  * Admin Attributes Controller

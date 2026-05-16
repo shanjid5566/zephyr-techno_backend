@@ -1,5 +1,5 @@
-import prisma from '../../utils/prisma.js';
-import AppError from '../../utils/app-error.js';
+import prisma from '../utils/prisma.js';
+import AppError from '../utils/app-error.js';
 
 /**
  * Single service covering CRUD for all 7 admin-managed product attribute models:

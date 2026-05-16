@@ -1,7 +1,7 @@
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
-import adminAttributesRoutes from './routes/admin/attributes.routes.js';
+import adminAttributesRoutes from './routes/attributes.routes.js';
 import env from './config/env.js';
 
 const app = express();
