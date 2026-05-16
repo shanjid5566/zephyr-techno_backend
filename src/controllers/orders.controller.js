@@ -1,4 +1,4 @@
-import orderService from "../services/order.service.js";
+import orderService from "../services/orders.service.js";
 import asyncHandler from "../utils/async-handler.js";
 
 /**

@@ -1,11 +1,12 @@
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
-import userRoutes from './routes/user.routes.js';
+import userRoutes from './routes/users.routes.js';
 import adminAttributesRoutes from './routes/attributes.routes.js';
 import adminProductRoutes from './routes/product.routes.js';
 import cartRoutes from './routes/cart.routes.js';
-import orderRoutes from './routes/order.routes.js';
-import adminOrderRoutes from './routes/admin.order.routes.js';
+import orderRoutes from './routes/orders.routes.js';
+import { adminRouter as adminOrderRoutes } from './routes/orders.routes.js';
+import { adminRouter as adminUsersRoutes } from './routes/users.routes.js';
 import env from './config/env.js';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/admin/attributes', adminAttributesRoutes);
 app.use('/api/admin/products', adminProductRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
+app.use('/api/admin/users', adminUsersRoutes);
 
 // 404 — catch all undefined routes
 app.use((req, res) => {
