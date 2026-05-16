@@ -165,8 +165,17 @@
                   "name": "Submit Contact (Public)",
                   "request": {
                     "method": "POST",
-                    "header": [{ "key": "Content-Type", "value": "application/json" }],
-                    "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"John\",\n  \"email\": \"john@example.com\",\n  \"subject\": \"Support\",\n  \"phone\": \"+8801712345678\",\n  \"message\": \"Help me please\"\n}" },
+                      "header": [],
+                      "body": {
+                        "mode": "formdata",
+                        "formdata": [
+                          { "key": "firstName", "value": "John", "type": "text" },
+                          { "key": "email", "value": "john@example.com", "type": "text" },
+                          { "key": "subject", "value": "Support", "type": "text" },
+                          { "key": "phone", "value": "+8801712345678", "type": "text" },
+                          { "key": "message", "value": "Help me please", "type": "text" }
+                        ]
+                      },
                     "url": { "raw": "{{baseUrl}}/api/contact", "host": ["{{baseUrl}}"], "path": ["api","contact"] }
                   }
                 }
@@ -933,6 +942,80 @@
                 ],
                 "body": { "mode": "raw", "raw": "{\n  \"isDeleted\": true\n}" },
                 "url": { "raw": "{{baseUrl}}/api/admin/contacts/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","contacts",":id"], "variable": [{ "key": "id", "value": "" }] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "promocodes",
+          "item": [
+            {
+              "name": "Create PromoCode",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "code", "value": "SAVE10", "type": "text" },
+                    { "key": "discountType", "value": "PERCENTAGE", "type": "text" },
+                    { "key": "discountValue", "value": "10", "type": "text" },
+                    { "key": "minOrderValue", "value": "50", "type": "text" },
+                    { "key": "maxUsageCount", "value": "100", "type": "text" },
+                    { "key": "startDate", "value": "2026-05-16T00:00:00.000Z", "type": "text" },
+                    { "key": "expiryDate", "value": "2026-12-31T23:59:59.000Z", "type": "text" },
+                    { "key": "isActive", "value": "true", "type": "text" },
+                    { "key": "applicableSeriesIds", "value": "[\"SERIES_UUID_1\", \"SERIES_UUID_2\"]", "type": "text" },
+                    { "key": "applicableModelIds", "value": "[\"MODEL_UUID_1\", \"MODEL_UUID_2\"]", "type": "text" }
+                  ]
+                },
+                "url": { "raw": "{{baseUrl}}/api/admin/promocodes", "host": ["{{baseUrl}}"], "path": ["api","admin","promocodes"] }
+              }
+            },
+            {
+              "name": "Get PromoCodes (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": { "raw": "{{baseUrl}}/api/admin/promocodes?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api","admin","promocodes"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+              }
+            },
+            {
+              "name": "Get Promo By ID",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": { "raw": "{{baseUrl}}/api/admin/promocodes/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","promocodes",":id"], "variable": [{ "key": "id", "value": "" }] }
+              }
+            },
+            {
+              "name": "Update Promo",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "discountValue", "value": "15", "type": "text" },
+                    { "key": "isActive", "value": "true", "type": "text" },
+                    { "key": "applicableSeriesIds", "value": "[\"SERIES_UUID_1\"]", "type": "text" },
+                    { "key": "applicableModelIds", "value": "[\"MODEL_UUID_1\"]", "type": "text" }
+                  ]
+                },
+                "url": { "raw": "{{baseUrl}}/api/admin/promocodes/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","promocodes",":id"], "variable": [{ "key": "id", "value": "" }] }
+              }
+            },
+            {
+              "name": "Delete Promo (Admin)",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": { "raw": "{{baseUrl}}/api/admin/promocodes/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","promocodes",":id"], "variable": [{ "key": "id", "value": "" }] }
               }
             }
           ]

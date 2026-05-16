@@ -6,6 +6,7 @@ import adminProductRoutes from './routes/product.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import orderRoutes from './routes/orders.routes.js';
 import contactRoutes, { adminRouter as adminContactRoutes } from './routes/contact.routes.js';
+import adminPromoRoutes from './routes/promo.routes.js';
 import { adminRouter as adminOrderRoutes } from './routes/orders.routes.js';
 import { adminRouter as adminUsersRoutes } from './routes/users.routes.js';
 import env from './config/env.js';
@@ -40,6 +41,7 @@ app.use('/api/admin/orders', adminOrderRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin/contacts', adminContactRoutes);
+app.use('/api/admin/promocodes', adminPromoRoutes);
 
 // 404 — catch all undefined routes
 app.use((req, res) => {

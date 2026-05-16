@@ -45,6 +45,7 @@ enum PaymentMethod {
   STRIPE
 }
 
+/// DiscountType: indicates whether the promo discount is a percentage or a fixed amount
 enum DiscountType {
   PERCENTAGE
   FIXED_AMOUNT
@@ -131,7 +132,6 @@ model Category {
   id         String                    @id @default(uuid())
   name       String                    @unique
   products   Product[]
-  promoCodes PromoCodeCategoryBridge[]
   isDeleted  Boolean                   @default(false)
   deletedAt  DateTime?
 }
@@ -142,6 +142,7 @@ model Series {
   name      String        @unique
   models    DeviceModel[]
   products  Product[]
+  promoCodeSeriesBridge PromoCodeSeriesBridge[]
   isDeleted Boolean       @default(false)
   deletedAt DateTime?
 }
@@ -152,6 +153,7 @@ model DeviceModel {
   seriesId  String
   series    Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   products  Product[]
+  promoCodeModelBridge PromoCodeModelBridge[]
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
@@ -478,23 +480,39 @@ model PromoCode {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  applicableCategories PromoCodeCategoryBridge[]
+  promoCodeSeriesBridge  PromoCodeSeriesBridge[]
+  promoCodeModelBridge   PromoCodeModelBridge[]
   isDeleted            Boolean                   @default(false)
   deletedAt            DateTime?
 }
 
-model PromoCodeCategoryBridge {
+
+model PromoCodeSeriesBridge {
   id          String   @id @default(uuid())
   promoCodeId String
-  categoryId  String
+  seriesId    String
   createdAt   DateTime @default(now())
 
   promoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
-  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  series    Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  @@unique([promoCodeId, categoryId])
+  @@unique([promoCodeId, seriesId])
+}
+
+model PromoCodeModelBridge {
+  id          String   @id @default(uuid())
+  promoCodeId String
+  modelId     String
+  createdAt   DateTime @default(now())
+
+  promoCode PromoCode  @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  deviceModel DeviceModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  isDeleted  Boolean    @default(false)
+  deletedAt  DateTime?
+
+  @@unique([promoCodeId, modelId])
 }
 
 model Review {
