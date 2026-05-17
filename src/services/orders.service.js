@@ -241,9 +241,14 @@ class OrderService {
   /**
    * Get user's orders
    */
-  async getUserOrders(userId) {
+  async getUserOrders(userId, query = {}) {
+    const { status } = query;
+
+    const where = { userId, isDeleted: false };
+    if (status) where.orderStatus = status;
+
     const orders = await prisma.order.findMany({
-      where: { userId },
+      where,
       include: {
         address: true,
         orderItems: {
@@ -408,7 +413,7 @@ class OrderService {
   async getAllOrders(query) {
     const { status, userId } = query;
 
-    const where = {};
+    const where = { isDeleted: false };
     if (status) where.orderStatus = status;
     if (userId) where.userId = userId;
 
@@ -442,6 +447,64 @@ class OrderService {
     });
 
     return orders.map((order) => this.#formatOrder(order, true));
+  }
+
+  /**
+   * Get order statistics overview (Admin only)
+   */
+  async getOrderStats() {
+    const stats = await prisma.order.groupBy({
+      by: ['orderStatus'],
+      where: { isDeleted: false },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Format as { PENDING: 12, PROCESSING: 8, SHIPPED: 45, DELIVERED: 134, CANCELLED: 0 }
+    const formatted = {
+      PENDING: 0,
+      PROCESSING: 0,
+      SHIPPED: 0,
+      DELIVERED: 0,
+      CANCELLED: 0,
+    };
+
+    stats.forEach((stat) => {
+      formatted[stat.orderStatus] = stat._count.id;
+    });
+
+    // Add total count
+    formatted.TOTAL = Object.values(formatted).reduce((sum, count) => sum + count, 0);
+
+    return formatted;
+  }
+
+  /**
+   * Delete order (soft delete) - Admin only
+   */
+  async deleteOrder(orderId) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new AppError('Order not found', 404);
+    }
+
+    if (order.isDeleted) {
+      throw new AppError('Order already deleted', 400);
+    }
+
+    const deletedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+
+    return { success: true, message: 'Order deleted successfully' };
   }
 
   /**

@@ -13,8 +13,11 @@ publicRouter.get('/:id', orderController.getOrderById);
 const adminRouter = Router();
 adminRouter.use(authenticate);
 adminRouter.use(adminGuard);
+adminRouter.get('/stats', orderController.getOrderStats);
+adminRouter.get('/:id', orderController.getOrderById);
 adminRouter.get('/', orderController.getAllOrders);
 adminRouter.patch('/:id/status', orderController.updateOrderStatus);
+adminRouter.delete('/:id', orderController.deleteOrder);
 
 export default publicRouter;
 export { adminRouter };

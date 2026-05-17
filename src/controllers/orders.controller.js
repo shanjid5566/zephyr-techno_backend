@@ -27,7 +27,7 @@ class OrderController {
    */
   getUserOrders = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const orders = await orderService.getUserOrders(userId);
+    const orders = await orderService.getUserOrders(userId, req.query);
 
     res.status(200).json({
       success: true,
@@ -66,6 +66,19 @@ class OrderController {
   });
 
   /**
+   * GET /api/admin/orders/stats
+   * Get order statistics overview (Admin only)
+   */
+  getOrderStats = asyncHandler(async (req, res) => {
+    const stats = await orderService.getOrderStats();
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  });
+
+  /**
    * PATCH /api/admin/orders/:id/status
    * Update order status (Admin only)
    */
@@ -79,6 +92,21 @@ class OrderController {
       success: true,
       message: "Order status updated",
       data: order,
+    });
+  });
+
+  /**
+   * DELETE /api/admin/orders/:id
+   * Delete order (soft delete) - Admin only
+   */
+  deleteOrder = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const result = await orderService.deleteOrder(id);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
     });
   });
 }
