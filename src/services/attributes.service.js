@@ -94,26 +94,51 @@ class AttributesService {
       return prisma.deviceModel.update({
         where: { id: deletedRecord.id },
         data: { seriesId, isDeleted: false, deletedAt: null },
-        include: { series: { select: { id: true, name: true } } },
+        select: {
+          id: true,
+          name: true,
+          seriesId: true,
+          series: { select: { id: true, name: true } },
+        },
       });
     }
     return prisma.deviceModel.create({
       data: { name, seriesId },
-      include: { series: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        name: true,
+        seriesId: true,
+        series: { select: { id: true, name: true } },
+      },
     });
   }
 
-  async getAllDeviceModels() {
+  async getAllDeviceModels(filters = {}) {
+    const where = {};
+    if (filters.seriesId) {
+      where.seriesId = filters.seriesId;
+    }
     return prisma.deviceModel.findMany({
+      where,
       orderBy: { name: 'asc' },
-      include: { series: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        name: true,
+        seriesId: true,
+        series: { select: { id: true, name: true } },
+      },
     });
   }
 
   async getDeviceModelById(id) {
     const record = await prisma.deviceModel.findUnique({
       where: { id },
-      include: { series: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        name: true,
+        seriesId: true,
+        series: { select: { id: true, name: true } },
+      },
     });
     if (!record) throw new AppError('Model not found.', 404);
     return record;
@@ -134,7 +159,12 @@ class AttributesService {
     return prisma.deviceModel.update({
       where: { id },
       data,
-      include: { series: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        name: true,
+        seriesId: true,
+        series: { select: { id: true, name: true } },
+      },
     });
   }
 
@@ -184,25 +214,121 @@ class AttributesService {
     return this.#safeDelete('condition', id, 'Condition');
   }
 
+  
+
   // ─────────────────────────────────────────────────────────────
-  // CONDITION PRICE  (basePrice management only)
+  // CONDITION-MODEL PRICES (per-device-model condition pricing)
   // ─────────────────────────────────────────────────────────────
 
-  async getAllConditionPrices() {
-    return prisma.condition.findMany({
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, basePrice: true },
+  async getAllConditionModelPrices() {
+    return prisma.conditionModelPrice.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        conditionId: true,
+        deviceModelId: true,
+        price: true,
+        createdAt: true,
+        updatedAt: true,
+        condition: { select: { id: true, name: true } },
+        deviceModel: { select: { id: true, name: true, seriesId: true } },
+      },
     });
   }
 
-  async setConditionPrice(id, { basePrice }) {
-    await this.#findOrFail('condition', id, 'Condition');
-    const price = this.#parsePrice(basePrice);
-    return prisma.condition.update({
+  async createConditionModelPrice({ conditionId, deviceModelId, price }) {
+    this.#requireString(conditionId, 'Condition ID');
+    this.#requireString(deviceModelId, 'DeviceModel ID');
+    const amt = this.#parsePrice(price);
+    
+    // Let DB enforce FK constraints - avoids extra validation queries
+    try {
+      return await prisma.conditionModelPrice.create({
+        data: { conditionId, deviceModelId, price: amt },
+        select: {
+          id: true,
+          conditionId: true,
+          deviceModelId: true,
+          price: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err) {
+      if (err?.code === 'P2002') {
+        throw new AppError('Price already set for this condition and model.', 409);
+      }
+      if (err?.code === 'P2003') {
+        throw new AppError('Invalid condition or model ID.', 400);
+      }
+      throw err;
+    }
+  }
+
+  async getConditionModelPriceById(id) {
+    const rec = await prisma.conditionModelPrice.findUnique({ 
       where: { id },
-      data: { basePrice: price },
-      select: { id: true, name: true, basePrice: true },
+      select: {
+        id: true,
+        conditionId: true,
+        deviceModelId: true,
+        price: true,
+        createdAt: true,
+        updatedAt: true,
+        condition: { select: { id: true, name: true } },
+        deviceModel: { select: { id: true, name: true, seriesId: true } },
+      },
     });
+    if (!rec) throw new AppError('Condition model price not found.', 404);
+    return rec;
+  }
+
+  async updateConditionModelPrice(id, { price }) {
+    const amt = this.#parsePrice(price);
+    try {
+      return await prisma.conditionModelPrice.update({ 
+        where: { id }, 
+        data: { price: amt },
+        select: {
+          id: true,
+          conditionId: true,
+          deviceModelId: true,
+          price: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err) {
+      if (err?.code === 'P2025') {
+        throw new AppError('Condition model price not found.', 404);
+      }
+      throw err;
+    }
+  }
+
+  async deleteConditionModelPrice(id) {
+    try {
+      await prisma.conditionModelPrice.delete({ where: { id } });
+    } catch (err) {
+      if (err?.code === 'P2025') {
+        throw new AppError('Condition model price not found.', 404);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Resolve the effective price for a condition/model pair.
+   * Returns the per-model price if present, otherwise falls back to Condition.basePrice.
+   */
+  async resolvePriceFor(conditionId, deviceModelId) {
+    if (!conditionId) throw new AppError('Condition ID is required.', 400);
+    if (!deviceModelId) throw new AppError('DeviceModel ID is required.', 400);
+    const pm = await prisma.conditionModelPrice.findFirst({ where: { conditionId, deviceModelId }, select: { price: true } });
+    if (pm) return pm.price;
+    const cond = await prisma.condition.findUnique({ where: { id: conditionId }, select: { basePrice: true } });
+    if (!cond) throw new AppError('Condition not found.', 404);
+    return cond.basePrice;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -316,7 +442,7 @@ class AttributesService {
       prisma.category.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
       prisma.series.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
       prisma.deviceModel.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, seriesId: true } }),
-      prisma.condition.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, basePrice: true } }),
+      prisma.condition.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
       prisma.color.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
       prisma.storageOption.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
       prisma.ramOption.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),

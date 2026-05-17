@@ -11,7 +11,8 @@
     { "key": "resetOtp", "value": "123456" },
     { "key": "password", "value": "Admin@1234" },
     { "key": "newPassword", "value": "NewPassword123!" },
-    { "key": "adminToken", "value": "" }
+    { "key": "adminToken", "value": "" },
+    { "key": "seriesId", "value": "" }
   ],
   "item": [
     {
@@ -27,10 +28,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "register"]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"{{email}}\",\n  \"phone\": \"+8801712345678\",\n  \"password\": \"{{password}}\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"{{email}}\",\n  \"phone\": \"+8801712345678\",\n  \"password\": \"{{password}}\"\n}" }
           }
         },
         {
@@ -376,6 +374,19 @@
                   }
                 },
                 {
+                  "name": "Get Models By Series",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/models?seriesId={{seriesId}}",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "models"],
+                      "query": [{ "key": "seriesId", "value": "{{seriesId}}" }]
+                    }
+                  }
+                },
+                {
                   "name": "Get Model By ID",
                   "request": {
                     "method": "GET",
@@ -497,39 +508,82 @@
               ]
             },
             {
-              "name": "Condition Price",
+              "name": "Condition Model Price",
               "item": [
                 {
-                  "name": "Get All Condition Prices",
+                  "name": "Get All Condition Model Prices",
                   "request": {
                     "method": "GET",
                     "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
                     "url": {
-                      "raw": "{{baseUrl}}/api/admin/attributes/condition-prices",
+                      "raw": "{{baseUrl}}/api/admin/attributes/condition-model-prices",
                       "host": ["{{baseUrl}}"],
-                      "path": ["api", "admin", "attributes", "condition-prices"]
+                      "path": ["api", "admin", "attributes", "condition-model-prices"]
                     }
                   }
                 },
                 {
-                  "name": "Set Condition Price",
+                  "name": "Create Condition Model Price",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                    ],
+                    "body": { "mode": "raw", "raw": "{\n  \"conditionId\": \"CONDITION_ID_HERE\",\n  \"deviceModelId\": \"MODEL_ID_HERE\",\n  \"price\": 100.00\n}" },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/condition-model-prices",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "condition-model-prices"]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Condition Model Price By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/condition-model-prices/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "condition-model-prices", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Condition Model Price",
                   "request": {
                     "method": "PATCH",
                     "header": [
                       { "key": "Content-Type", "value": "application/json" },
                       { "key": "Authorization", "value": "Bearer {{adminToken}}" }
                     ],
+                    "body": { "mode": "raw", "raw": "{\n  \"price\": 120.00\n}" },
                     "url": {
-                      "raw": "{{baseUrl}}/api/admin/attributes/condition-prices/:id",
+                      "raw": "{{baseUrl}}/api/admin/attributes/condition-model-prices/:id",
                       "host": ["{{baseUrl}}"],
-                      "path": ["api", "admin", "attributes", "condition-prices", ":id"],
+                      "path": ["api", "admin", "attributes", "condition-model-prices", ":id"],
                       "variable": [{ "key": "id", "value": "" }]
-                    },
-                    "body": { "mode": "raw", "raw": "{\n  \"basePrice\": 100.00\n}" }
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Condition Model Price",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/attributes/condition-model-prices/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "admin", "attributes", "condition-model-prices", ":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
                   }
                 }
               ]
             },
+            
             {
               "name": "Color",
               "item": [

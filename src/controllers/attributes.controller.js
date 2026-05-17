@@ -80,7 +80,9 @@ class AttributesController {
   });
 
   getAllDeviceModels = asyncHandler(async (req, res) => {
-    const data = await this.service.getAllDeviceModels();
+    const filters = {};
+    if (req.query.seriesId) filters.seriesId = req.query.seriesId;
+    const data = await this.service.getAllDeviceModels(filters);
     res.status(200).json({ success: true, data });
   });
 
@@ -126,16 +128,33 @@ class AttributesController {
     res.status(200).json({ success: true, message: 'Condition deleted.' });
   });
 
-  // ─── CONDITION PRICE (basePrice management) ──────────────────
+  
 
-  getAllConditionPrices = asyncHandler(async (req, res) => {
-    const data = await this.service.getAllConditionPrices();
+  // ─── CONDITION-MODEL PRICES (per-model pricing) ────────────
+
+  getAllConditionModelPrices = asyncHandler(async (req, res) => {
+    const data = await this.service.getAllConditionModelPrices();
     res.status(200).json({ success: true, data });
   });
 
-  setConditionPrice = asyncHandler(async (req, res) => {
-    const data = await this.service.setConditionPrice(req.params.id, req.body);
-    res.status(200).json({ success: true, message: 'Condition price updated.', data });
+  createConditionModelPrice = asyncHandler(async (req, res) => {
+    const data = await this.service.createConditionModelPrice(req.body);
+    res.status(201).json({ success: true, message: 'Condition price for model created.', data });
+  });
+
+  getConditionModelPriceById = asyncHandler(async (req, res) => {
+    const data = await this.service.getConditionModelPriceById(req.params.id);
+    res.status(200).json({ success: true, data });
+  });
+
+  updateConditionModelPrice = asyncHandler(async (req, res) => {
+    const data = await this.service.updateConditionModelPrice(req.params.id, req.body);
+    res.status(200).json({ success: true, message: 'Condition model price updated.', data });
+  });
+
+  deleteConditionModelPrice = asyncHandler(async (req, res) => {
+    await this.service.deleteConditionModelPrice(req.params.id);
+    res.status(200).json({ success: true, message: 'Condition model price deleted.' });
   });
 
   // ─── COLOR ───────────────────────────────────────────────────

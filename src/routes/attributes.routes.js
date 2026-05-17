@@ -38,9 +38,12 @@ adminAttributesRoutes.get('/conditions/:id', ctrl.getConditionById);
 adminAttributesRoutes.patch('/conditions/:id', ctrl.updateCondition);
 adminAttributesRoutes.delete('/conditions/:id', ctrl.deleteCondition);
 
-// ─── CONDITION PRICES (basePrice management) ───────────────────
-adminAttributesRoutes.get('/condition-prices', ctrl.getAllConditionPrices);
-adminAttributesRoutes.patch('/condition-prices/:id', ctrl.setConditionPrice);
+// ─── CONDITION-MODEL PRICES (per-model pricing)
+adminAttributesRoutes.get('/condition-model-prices', ctrl.getAllConditionModelPrices);
+adminAttributesRoutes.post('/condition-model-prices', ctrl.createConditionModelPrice);
+adminAttributesRoutes.get('/condition-model-prices/:id', ctrl.getConditionModelPriceById);
+adminAttributesRoutes.patch('/condition-model-prices/:id', ctrl.updateConditionModelPrice);
+adminAttributesRoutes.delete('/condition-model-prices/:id', ctrl.deleteConditionModelPrice);
 
 // ─── COLORS ────────────────────────────────────────────────────
 adminAttributesRoutes.post('/colors', ctrl.createColor);
