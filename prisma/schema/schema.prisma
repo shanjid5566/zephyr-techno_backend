@@ -156,6 +156,7 @@ model DeviceModel {
   isDeleted            Boolean                @default(false)
   deletedAt            DateTime?
   conditionModelPrices ConditionModelPrice[]
+  sellRequests         SellRequest[]
 
   @@index([seriesId])
 }
@@ -175,13 +176,13 @@ model Condition {
 
 // Per-model condition prices (overrides Condition.basePrice)
 model ConditionModelPrice {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   conditionId   String
   deviceModelId String
-  price         Decimal  @db.Decimal(12, 2)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  isDeleted     Boolean  @default(false)
+  price         Decimal   @db.Decimal(12, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isDeleted     Boolean   @default(false)
   deletedAt     DateTime?
 
   condition   Condition   @relation(fields: [conditionId], references: [id], onDelete: Cascade)
@@ -554,30 +555,34 @@ model Review {
 }
 
 model SellRequest {
-  id             String     @id @default(uuid())
-  stringId       String     @unique
-  userId         String?
-  firstName      String
-  lastName       String
-  email          String
-  phone          String
-  deviceName     String
-  conditionId    String?
-  baseOfferPrice Decimal    @db.Decimal(12, 2)
-  status         SellStatus @default(SUBMITTED)
-  serialNumber   String?
-  trackingNumber String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id               String     @id @default(uuid())
+  stringId         String     @unique
+  userId           String?
+  firstName        String
+  lastName         String
+  email            String
+  phone            String
+  deviceName       String
+  deviceModelId    String?
+  conditionId      String?
+  baseOfferPrice   Decimal    @db.Decimal(12, 2)
+  userOfferedPrice Decimal?   @db.Decimal(12, 2)
+  status           SellStatus @default(SUBMITTED)
+  serialNumber     String?
+  trackingNumber   String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
-  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  condition Condition?    @relation(fields: [conditionId], references: [id])
-  images    DeviceImage[]
-  isDeleted Boolean       @default(false)
-  deletedAt DateTime?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  condition   Condition?    @relation(fields: [conditionId], references: [id])
+  deviceModel DeviceModel?  @relation(fields: [deviceModelId], references: [id])
+  images      DeviceImage[]
+  isDeleted   Boolean       @default(false)
+  deletedAt   DateTime?
 
   @@index([userId])
   @@index([conditionId])
+  @@index([deviceModelId])
 }
 
 model DeviceImage {

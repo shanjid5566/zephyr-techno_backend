@@ -12,7 +12,10 @@
     { "key": "password", "value": "Admin@1234" },
     { "key": "newPassword", "value": "NewPassword123!" },
     { "key": "adminToken", "value": "" },
-    { "key": "seriesId", "value": "" }
+    { "key": "seriesId", "value": "" },
+    { "key": "deviceModelId", "value": "" },
+    { "key": "conditionId", "value": "" },
+    { "key": "sellRequestId", "value": "" }
   ],
   "item": [
     {
@@ -178,6 +181,52 @@
                   }
                 }
               ]
+            }
+          ]
+        },
+        {
+          "name": "sell",
+          "item": [
+            {
+              "name": "Get All Series (Public)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{baseUrl}}/api/sell/series", "host": ["{{baseUrl}}"], "path": ["api","sell","series"] }
+              }
+            },
+            {
+              "name": "Get Models By Series (Public)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{baseUrl}}/api/sell/models?seriesId={{seriesId}}", "host": ["{{baseUrl}}"], "path": ["api","sell","models"], "query": [{ "key": "seriesId", "value": "{{seriesId}}" }] }
+              }
+            },
+            {
+              "name": "Get All Conditions (Public)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{baseUrl}}/api/sell/conditions", "host": ["{{baseUrl}}"], "path": ["api","sell","conditions"] }
+              }
+            },
+            {
+              "name": "Get Price (Public)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{baseUrl}}/api/sell/price?conditionId={{conditionId}}&deviceModelId={{deviceModelId}}", "host": ["{{baseUrl}}"], "path": ["api","sell","price"], "query": [ { "key": "conditionId", "value": "{{conditionId}}" }, { "key": "deviceModelId", "value": "{{deviceModelId}}" } ] }
+              }
+            },
+            {
+              "name": "Finalize Sale (Public)",
+              "request": {
+                "method": "POST",
+                "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+8801712345678\",\n  \"deviceName\": \"iPhone 14\",\n  \"deviceModelId\": \"{{deviceModelId}}\",\n  \"conditionId\": \"{{conditionId}}\",\n  \"baseOfferPrice\": 300.00\n}" },
+                "url": { "raw": "{{baseUrl}}/api/sell/finalize", "host": ["{{baseUrl}}"], "path": ["api","sell","finalize"] }
+              }
             }
           ]
         }
@@ -1102,6 +1151,46 @@
                 "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
                 "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"UpdatedName\",\n  \"role\": \"ADMIN\",\n  \"status\": \"SUSPENDED\"  \n}\n", "options": { "raw": { "language": "json" } } },
                 "url": { "raw": "{{baseUrl}}/api/admin/users/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","users",":id"] }
+              }
+            }
+          ]
+        }
+          ,
+        {
+          "name": "sell requests",
+          "item": [
+            {
+              "name": "Get Sell Requests (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": { "raw": "{{baseUrl}}/api/admin/sell-requests?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","admin","sell-requests"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] }
+              }
+            },
+            {
+              "name": "Get Sell Request By ID",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": { "raw": "{{baseUrl}}/api/admin/sell-requests/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","sell-requests",":id"], "variable": [{ "key": "id", "value": "{{sellRequestId}}" }] }
+              }
+            },
+            
+            {
+              "name": "Update Sell Request (Admin)",
+              "request": {
+                "method": "PATCH",
+                "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"CONTRACTED\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/admin/sell-requests/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","sell-requests",":id"], "variable": [{ "key": "id", "value": "{{sellRequestId}}" }] }
+              }
+            },
+            {
+              "name": "Delete Sell Request (Admin)",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+                "url": { "raw": "{{baseUrl}}/api/admin/sell-requests/:id", "host": ["{{baseUrl}}"], "path": ["api","admin","sell-requests",":id"], "variable": [{ "key": "id", "value": "{{sellRequestId}}" }] }
               }
             }
           ]
