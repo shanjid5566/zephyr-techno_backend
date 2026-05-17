@@ -239,6 +239,46 @@
                     "header": [],
                     "url": { "raw": "{{baseUrl}}/api/public/product/attributes", "host": ["{{baseUrl}}"], "path": ["api","public","product","attributes"] }
                   }
+                },
+                {
+                  "name": "List Products (Public)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/public/product?categoryId={{categoryId}}&seriesId={{seriesId}}&deviceModelId={{deviceModelId}}&conditionId={{conditionId}}&colorId={{colorId}}&storageOptionId={{storageOptionId}}&ramOptionId={{ramOptionId}}&priceMin={{priceMin}}&priceMax={{priceMax}}&search={{search}}&page={{page}}&limit={{limit}}&sortBy={{sortBy}}",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api","public","product"],
+                      "query": [
+                        { "key": "categoryId", "value": "{{categoryId}}" },
+                        { "key": "seriesId", "value": "{{seriesId}}" },
+                        { "key": "deviceModelId", "value": "{{deviceModelId}}" },
+                        { "key": "conditionId", "value": "{{conditionId}}" },
+                        { "key": "colorId", "value": "{{colorId}}" },
+                        { "key": "storageOptionId", "value": "{{storageOptionId}}" },
+                        { "key": "ramOptionId", "value": "{{ramOptionId}}" },
+                        { "key": "priceMin", "value": "{{priceMin}}" },
+                        { "key": "priceMax", "value": "{{priceMax}}" },
+                        { "key": "search", "value": "{{search}}" },
+                        { "key": "page", "value": "{{page}}" },
+                        { "key": "limit", "value": "{{limit}}" },
+                        { "key": "sortBy", "value": "{{sortBy}}" }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Product By ID (Public)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/public/product/:id",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api","public","product",":id"],
+                      "variable": [{ "key": "id", "value": "" }]
+                    }
+                  }
                 }
               ]
             }

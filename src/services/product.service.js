@@ -305,14 +305,69 @@ class ProductService {
    * Get all products with optional filters
    */
   async getAllProducts(query) {
-    const { categoryId, listingStatus, conditionId } = query;
+    // Supported filters: categoryId, seriesId, deviceModelId, conditionId,
+    // colorId, storageOptionId, ramOptionId, priceMin, priceMax, search,
+    // listingStatus, isFeatured
+    // Pagination: page, limit
+    const {
+      categoryId,
+      seriesId,
+      deviceModelId,
+      conditionId,
+      colorId,
+      storageOptionId,
+      ramOptionId,
+      priceMin,
+      priceMax,
+      search,
+      listingStatus,
+      isFeatured,
+      page = 1,
+      limit = 24,
+      sortBy,
+    } = query;
 
     const where = {};
     if (listingStatus) where.listingStatus = listingStatus;
     if (conditionId) where.conditionId = conditionId;
+    if (categoryId) where.categoryId = categoryId;
+    if (seriesId) where.seriesId = seriesId;
+    if (deviceModelId) where.deviceModelId = deviceModelId;
+    if (isFeatured !== undefined) where.isFeatured = isFeatured === 'true' || isFeatured === true;
+    if (priceMin !== undefined || priceMax !== undefined) {
+      where.basePrice = {};
+      if (priceMin !== undefined) where.basePrice.gte = Number(priceMin);
+      if (priceMax !== undefined) where.basePrice.lte = Number(priceMax);
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: String(search), mode: 'insensitive' } },
+        { description: { contains: String(search), mode: 'insensitive' } },
+      ];
+    }
+
+    // Build relation filters for options
+    if (colorId) where.colors = { some: { colorId } };
+    if (storageOptionId) where.storageOptions = { some: { storageOptionId } };
+    if (ramOptionId) where.ramOptions = { some: { ramOptionId } };
+
+    const take = Math.min(Number(limit) || 24, 100);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+
+    const orderBy = [];
+    if (sortBy === 'priceAsc') orderBy.push({ basePrice: 'asc' });
+    else if (sortBy === 'priceDesc') orderBy.push({ basePrice: 'desc' });
+    else if (sortBy === 'featured') orderBy.push({ isFeatured: 'desc' });
+    orderBy.push({ createdAt: 'desc' });
+
+    // Count total (for pagination metadata)
+    const total = await prisma.product.count({ where });
 
     const products = await prisma.product.findMany({
       where,
+      skip,
+      take,
+      orderBy,
       select: {
         id: true,
         title: true,
@@ -327,14 +382,17 @@ class ProductService {
         deviceModel: { select: { id: true, name: true } },
         condition: { select: { id: true, name: true } },
         productGalleries: {
-          orderBy: { displayOrder: "asc" },
+          orderBy: { displayOrder: 'asc' },
           take: 1,
         },
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    return products.map((p) => this.#formatProductCard(p));
+    const items = products.map((p) => this.#formatProductCard(p));
+    return {
+      meta: { total, page: Number(page), limit: take, totalPages: Math.ceil(total / take) },
+      items,
+    };
   }
 
   /**

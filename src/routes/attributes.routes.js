@@ -67,8 +67,13 @@ adminAttributesRoutes.patch('/ram-options/:id', ctrl.updateRamOption);
 adminAttributesRoutes.delete('/ram-options/:id', ctrl.deleteRamOption);
 // Public routes (no auth) for product listing filters
 import { Router as PublicRouter } from 'express';
+import productCtrl from '../controllers/product.controller.js';
 const publicAttributesRoutes = PublicRouter();
+// attributes
 publicAttributesRoutes.get('/attributes', ctrl.getPublicProductAttributes);
+// public product listing and detail
+publicAttributesRoutes.get('/', productCtrl.getAllProducts);
+publicAttributesRoutes.get('/:id', productCtrl.getProductById);
 
 export default adminAttributesRoutes;
 export { publicAttributesRoutes };
