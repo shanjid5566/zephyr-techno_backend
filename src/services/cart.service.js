@@ -63,10 +63,16 @@ class CartService {
       throw new AppError(`Only ${product.stockQuantity} items in stock`, 400);
     }
 
+    // Ensure user has a cart (create if missing)
+    let cart = await prisma.cart.findUnique({ where: { userId } });
+    if (!cart) {
+      cart = await prisma.cart.create({ data: { userId } });
+    }
+
     // Check if this exact configuration already exists in user's cart
     const existingCartItem = await prisma.cartItem.findFirst({
       where: {
-        userId,
+        cartId: cart.id,
         productId,
         colorId,
         storageOptionId,
@@ -89,6 +95,19 @@ class CartService {
       const updated = await prisma.cartItem.update({
         where: { id: existingCartItem.id },
         data: { quantity: newQuantity },
+        include: {
+          product: {
+            include: {
+              productGalleries: {
+                orderBy: { displayOrder: 'asc' },
+                take: 1,
+              },
+            },
+          },
+          color: true,
+          storageOption: true,
+          ramOption: true,
+        },
       });
 
       return this.#formatCartItem({
@@ -103,7 +122,7 @@ class CartService {
     // Create new cart item
     const cartItem = await prisma.cartItem.create({
       data: {
-        userId,
+        cartId: cart.id,
         productId,
         colorId,
         storageOptionId,
@@ -114,7 +133,7 @@ class CartService {
         product: {
           include: {
             productGalleries: {
-              orderBy: { displayOrder: "asc" },
+              orderBy: { displayOrder: 'asc' },
               take: 1,
             },
           },
@@ -132,13 +151,16 @@ class CartService {
    * Get user's cart with all items
    */
   async getCart(userId) {
+    const cart = await prisma.cart.findUnique({ where: { userId } });
+    if (!cart) return { items: [], subtotal: 0, totalItems: 0 };
+
     const cartItems = await prisma.cartItem.findMany({
-      where: { userId },
+      where: { cartId: cart.id },
       include: {
         product: {
           include: {
             productGalleries: {
-              orderBy: { displayOrder: "asc" },
+              orderBy: { displayOrder: 'asc' },
               take: 1,
             },
           },
@@ -147,7 +169,7 @@ class CartService {
         storageOption: true,
         ramOption: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     const items = cartItems.map((item) => this.#formatCartItem(item));
@@ -173,15 +195,21 @@ class CartService {
     }
 
     // Verify ownership
-    const cartItem = await prisma.cartItem.findFirst({
-      where: { id: cartItemId, userId },
+    const cartItem = await prisma.cartItem.findUnique({
+      where: { id: cartItemId },
       include: {
         product: true,
+        cart: true,
       },
     });
 
     if (!cartItem) {
       throw new AppError("Cart item not found", 404);
+    }
+
+    // Authorization: ensure the cart belongs to this user
+    if (!cartItem.cart || cartItem.cart.userId !== userId) {
+      throw new AppError('Unauthorized to modify this cart item', 403);
     }
 
     // Check stock
@@ -217,18 +245,22 @@ class CartService {
    * Remove item from cart
    */
   async removeCartItem(userId, cartItemId) {
+
     // Verify ownership
-    const cartItem = await prisma.cartItem.findFirst({
-      where: { id: cartItemId, userId },
+    const cartItem = await prisma.cartItem.findUnique({
+      where: { id: cartItemId },
+      include: { cart: true },
     });
 
     if (!cartItem) {
-      throw new AppError("Cart item not found", 404);
+      throw new AppError('Cart item not found', 404);
     }
 
-    await prisma.cartItem.delete({
-      where: { id: cartItemId },
-    });
+    if (!cartItem.cart || cartItem.cart.userId !== userId) {
+      throw new AppError('Unauthorized to remove this cart item', 403);
+    }
+
+    await prisma.cartItem.delete({ where: { id: cartItemId } });
 
     return true;
   }
@@ -237,9 +269,10 @@ class CartService {
    * Clear entire cart
    */
   async clearCart(userId) {
-    await prisma.cartItem.deleteMany({
-      where: { userId },
-    });
+    const cart = await prisma.cart.findUnique({ where: { userId } });
+    if (!cart) return true;
+
+    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
     return true;
   }
@@ -260,6 +293,8 @@ class CartService {
         title: item.product.title,
         basePrice: item.product.basePrice,
         stockQuantity: item.product.stockQuantity,
+        seriesId: item.product.seriesId,
+        deviceModelId: item.product.deviceModelId,
         thumbnail,
       },
       selectedOptions: {

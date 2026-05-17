@@ -1,6 +1,7 @@
 import prisma from "../utils/prisma.js";
 import AppError from "../utils/app-error.js";
 import { buildImageUrl } from "../utils/url.js";
+import promoService from "./promo.service.js";
 
 /**
  * OrderService
@@ -10,27 +11,66 @@ class OrderService {
   /**
    * Create order from cart (checkout)
    * Converts cart items to order items with price snapshot
+   * @param {string} userId - User ID
+   * @param {Object} data - { shippingAddress, paymentMethod, cartItemIds?, shippingMethod?, shippingCost?, promoCode? }
+   * @param {string[]} data.cartItemIds - Optional: specific cart item IDs to checkout. If omitted, checkout all cart items.
+   * @param {Object} data.shippingAddress - { fullName, phone?, street, city, state?, zipCode, country }
+   * @param {string} data.shippingMethod - Optional: e.g., "Standard Delivery", "Express Delivery"
+   * @param {number} data.shippingCost - Optional: shipping cost (default 0)
+   * @param {string} data.promoCode - Optional: promo code to apply
    */
   async createOrder(userId, data) {
-    const { shippingAddress, paymentMethod } = data;
+    const { shippingAddress, paymentMethod, cartItemIds, shippingMethod, shippingCost = 0, promoCode } = data;
 
     if (!shippingAddress) {
       throw new AppError("Shipping address is required", 400);
     }
 
+    // Validate required address fields
+    const { fullName, street, city, zipCode, country } = shippingAddress;
+    if (!fullName || !street || !city || !zipCode || !country) {
+      throw new AppError("Complete shipping address required (fullName, street, city, zipCode, country)", 400);
+    }
+
     // Get user's cart items
+    const cart = await prisma.cart.findUnique({ where: { userId } });
+    if (!cart) {
+      throw new AppError('Cart is empty', 400);
+    }
+
+    // Build where clause: if cartItemIds provided, filter by them; otherwise get all
+    const whereClause = { cartId: cart.id };
+    if (cartItemIds && cartItemIds.length > 0) {
+      whereClause.id = { in: cartItemIds };
+    }
+
     const cartItems = await prisma.cartItem.findMany({
-      where: { userId },
+      where: whereClause,
       include: {
-        product: true,
-        color: true,
-        storageOption: true,
-        ramOption: true,
+        product: {
+          select: {
+            id: true,
+            title: true,
+            basePrice: true,
+            stockQuantity: true,
+            listingStatus: true,
+            seriesId: true,
+            deviceModelId: true,
+          },
+        },
+        color: { select: { id: true, name: true } },
+        storageOption: { select: { id: true, name: true } },
+        ramOption: { select: { id: true, name: true } },
       },
     });
 
     if (cartItems.length === 0) {
-      throw new AppError("Cart is empty", 400);
+      throw new AppError("No items to checkout", 400);
+    }
+
+    // If specific cartItemIds were requested, verify all were found
+    if (cartItemIds && cartItemIds.length > 0 && cartItems.length !== cartItemIds.length) {
+      throw new AppError('Some cart items not found or do not belong to your cart', 400);
     }
 
     // Validate stock availability for all items
@@ -56,16 +96,62 @@ class OrderService {
       0,
     );
 
+    // Validate and apply promo code if provided
+    let discountTotal = 0;
+    let promoCodeId = null;
+    let appliedPromoCode = null;
+
+    if (promoCode) {
+      const promoResult = await promoService.validateAndApplyPromoCode(promoCode, cartItems, orderTotal);
+      if (!promoResult.valid) {
+        throw new AppError(promoResult.message, 400);
+      }
+      discountTotal = promoResult.discount;
+      promoCodeId = promoResult.promoCode.id;
+      appliedPromoCode = promoResult.promoCode.code;
+    }
+
+    // Final total: orderTotal + shippingCost - discountTotal
+    const finalTotal = orderTotal + shippingCost - discountTotal;
+
+    if (finalTotal < 0) {
+      throw new AppError('Invalid order total', 400);
+    }
+
     // Create order and order items in transaction
     const order = await prisma.$transaction(async (tx) => {
+      // Create shipping address
+      const address = await tx.userAddress.create({
+        data: {
+          userId,
+          fullName: shippingAddress.fullName,
+          phone: shippingAddress.phone || null,
+          street: shippingAddress.street,
+          city: shippingAddress.city,
+          state: shippingAddress.state || null,
+          zipCode: shippingAddress.zipCode,
+          country: shippingAddress.country,
+        },
+      });
+
+      // Generate unique string ID for order (e.g., ORD-20260517-ABC123)
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const stringId = `ORD-${timestamp}-${random}`;
+
       // Create order
       const createdOrder = await tx.order.create({
         data: {
           userId,
-          total: orderTotal,
-          status: "PENDING",
-          shippingAddress,
-          paymentMethod: paymentMethod || "COD",
+          stringId,
+          addressId: address.id,
+          totalPrice: finalTotal,
+          shippingCost,
+          shippingMethod: shippingMethod || null,
+          discountTotal,
+          promoCodeUsed: appliedPromoCode,
+          orderStatus: "PENDING",
+          paymentMethod: paymentMethod || "STRIPE",
           orderItems: {
             create: cartItems.map((item) => ({
               productId: item.productId,
@@ -77,46 +163,79 @@ class OrderService {
             })),
           },
         },
-        include: {
-          orderItems: {
-            include: {
-              product: {
-                include: {
-                  productGalleries: {
-                    orderBy: { displayOrder: "asc" },
-                    take: 1,
-                  },
-                },
-              },
-              color: true,
-              storageOption: true,
-              ramOption: true,
-            },
-          },
+        select: {
+          id: true,
+          stringId: true,
+          userId: true,
+          totalPrice: true,
+          shippingCost: true,
+          shippingMethod: true,
+          discountTotal: true,
+          promoCodeUsed: true,
+          orderStatus: true,
+          paymentStatus: true,
+          paymentMethod: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
 
-      // Decrease stock for all products
-      for (const item of cartItems) {
-        await tx.product.update({
+      // Batch stock updates - collect all product IDs and quantities
+      const stockUpdates = cartItems.map((item) =>
+        tx.product.update({
           where: { id: item.productId },
-          data: {
-            stockQuantity: {
-              decrement: item.quantity,
-            },
-          },
+          data: { stockQuantity: { decrement: item.quantity } },
+        })
+      );
+
+      // Execute all stock updates in parallel
+      await Promise.all(stockUpdates);
+
+      // Clear only the checked-out items
+      const cartItemIdsToDelete = cartItems.map((item) => item.id);
+      await tx.cartItem.deleteMany({ where: { id: { in: cartItemIdsToDelete } } });
+
+      // Increment promo code usage count if applied
+      if (promoCodeId) {
+        await tx.promoCode.update({
+          where: { id: promoCodeId },
+          data: { currentUsageCount: { increment: 1 } },
         });
       }
 
-      // Clear the cart
-      await tx.cartItem.deleteMany({
-        where: { userId },
-      });
-
-      return createdOrder;
+      return { order: createdOrder, address, cartItems };
     });
 
-    return this.#formatOrder(order);
+    // Format order response using data from transaction
+    return {
+      id: order.order.id,
+      orderId: order.order.stringId,
+      totalPrice: parseFloat(order.order.totalPrice),
+      shippingCost: parseFloat(order.order.shippingCost),
+      shippingMethod: order.order.shippingMethod,
+      discountTotal: parseFloat(order.order.discountTotal),
+      status: order.order.orderStatus,
+      paymentStatus: order.order.paymentStatus,
+      paymentMethod: order.order.paymentMethod,
+      shippingAddress: {
+        fullName: order.address.fullName,
+        phone: order.address.phone,
+        street: order.address.street,
+        city: order.address.city,
+        state: order.address.state,
+        zipCode: order.address.zipCode,
+        country: order.address.country,
+      },
+      items: order.cartItems.map((item) => ({
+        productId: item.productId,
+        title: item.product.title,
+        quantity: item.quantity,
+        priceAtPurchase: parseFloat(item.product.basePrice),
+        subtotal: parseFloat(item.product.basePrice) * item.quantity,
+      })),
+      createdAt: order.order.createdAt,
+      updatedAt: order.order.updatedAt,
+    };
   }
 
   /**
@@ -126,6 +245,7 @@ class OrderService {
     const orders = await prisma.order.findMany({
       where: { userId },
       include: {
+        address: true,
         orderItems: {
           include: {
             product: {
@@ -155,10 +275,10 @@ class OrderService {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
+        address: true,
         user: {
           select: {
             id: true,
-            name: true,
             email: true,
           },
         },
@@ -213,12 +333,51 @@ class OrderService {
 
     const order = await prisma.order.update({
       where: { id: orderId },
-      data: { status },
+      data: { orderStatus: status },
       include: {
+        address: true,
         user: {
           select: {
             id: true,
-            name: true,
+            email: true,
+          },
+        },
+        orderItems: {
+          include: {
+            product: {
+              include: {
+                productGalleries: {
+                  orderBy: { displayOrder: "asc" },
+                  take: 1,
+                },
+              },
+            },
+            color: true,
+            storageOption: true,
+            ramOption: true,
+          },
+        },
+      },
+    });
+
+    return this.#formatOrder(order, true);
+  }
+
+  /**
+   * Update order and payment status (for payment confirmation)
+   */
+  async confirmPayment(orderId, orderStatus = 'PROCESSING', paymentStatus = 'PAID') {
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { 
+        orderStatus,
+        paymentStatus,
+      },
+      include: {
+        address: true,
+        user: {
+          select: {
+            id: true,
             email: true,
           },
         },
@@ -250,16 +409,16 @@ class OrderService {
     const { status, userId } = query;
 
     const where = {};
-    if (status) where.status = status;
+    if (status) where.orderStatus = status;
     if (userId) where.userId = userId;
 
     const orders = await prisma.order.findMany({
       where,
       include: {
+        address: true,
         user: {
           select: {
             id: true,
-            name: true,
             email: true,
           },
         },
@@ -291,10 +450,23 @@ class OrderService {
   #formatOrder(order, includeUserInfo = false) {
     const formatted = {
       id: order.id,
-      total: order.total,
-      status: order.status,
-      shippingAddress: order.shippingAddress,
+      orderId: order.stringId,
+      totalPrice: parseFloat(order.totalPrice),
+      shippingCost: parseFloat(order.shippingCost),
+      shippingMethod: order.shippingMethod,
+      discountTotal: parseFloat(order.discountTotal),
+      status: order.orderStatus,
+      paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod,
+      shippingAddress: order.address ? {
+        fullName: order.address.fullName,
+        phone: order.address.phone,
+        street: order.address.street,
+        city: order.address.city,
+        state: order.address.state,
+        zipCode: order.address.zipCode,
+        country: order.address.country,
+      } : null,
       items: order.orderItems.map((item) => {
         const thumbnail = item.product.productGalleries?.[0]
           ? buildImageUrl(item.product.productGalleries[0].imageUrl)
@@ -303,7 +475,7 @@ class OrderService {
         return {
           id: item.id,
           quantity: item.quantity,
-          priceAtPurchase: item.priceAtPurchase,
+          priceAtPurchase: parseFloat(item.priceAtPurchase),
           product: {
             id: item.product.id,
             title: item.product.title,
@@ -323,7 +495,7 @@ class OrderService {
               name: item.ramOption.name,
             },
           },
-          subtotal: item.priceAtPurchase * item.quantity,
+          subtotal: parseFloat(item.priceAtPurchase) * item.quantity,
         };
       }),
       createdAt: order.createdAt,
@@ -334,7 +506,6 @@ class OrderService {
     if (includeUserInfo && order.user) {
       formatted.user = {
         id: order.user.id,
-        name: order.user.name,
         email: order.user.email,
       };
     }

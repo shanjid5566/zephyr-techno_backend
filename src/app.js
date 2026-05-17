@@ -10,7 +10,7 @@ import adminPromoRoutes from './routes/promo.routes.js';
 import { adminRouter as adminOrderRoutes } from './routes/orders.routes.js';
 import { adminRouter as adminUsersRoutes } from './routes/users.routes.js';
 import sellRoutes, { adminRouter as adminSellRoutes } from './routes/sell.routes.js';
-import { publicAttributesRoutes } from './routes/attributes.routes.js';
+import publicProductRoutes from './routes/public/product.routes.js';
 import env from './config/env.js';
 
 const app = express();
@@ -45,7 +45,7 @@ app.use('/api/admin/sell-requests', adminSellRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin/contacts', adminContactRoutes);
 app.use('/api/admin/promocodes', adminPromoRoutes);
-app.use('/api/public/product', publicAttributesRoutes);
+app.use('/api/public/product', publicProductRoutes);
 app.use('/api/sell', sellRoutes);
 
 // 404 — catch all undefined routes

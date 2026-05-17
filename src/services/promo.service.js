@@ -213,6 +213,168 @@ class PromoService {
       throw err;
     }
   }
+
+  /**
+   * Validate and apply promo code to cart items
+   * @param {string} code - Promo code string
+   * @param {Array} cartItems - Cart items with product details
+   * @param {number} subtotal - Order subtotal before discount
+   * @returns {Object} { valid, discount, promoCode, message }
+   */
+  async validateAndApplyPromoCode(code, cartItems, subtotal) {
+    if (!code) {
+      return { valid: false, discount: 0, message: 'Promo code is required' };
+    }
+
+    // Find promo code (case-insensitive) - use select to reduce data transfer
+    const promoCode = await prisma.promoCode.findFirst({
+      where: {
+        code: { equals: code, mode: 'insensitive' },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        code: true,
+        discountType: true,
+        discountValue: true,
+        minOrderValue: true,
+        maxUsageCount: true,
+        currentUsageCount: true,
+        startDate: true,
+        expiryDate: true,
+        isActive: true,
+        promoCodeSeriesBridge: {
+          where: { isDeleted: false },
+          select: { seriesId: true },
+        },
+        promoCodeModelBridge: {
+          where: { isDeleted: false },
+          select: { modelId: true },
+        },
+      },
+    });
+
+    if (!promoCode) {
+      return { valid: false, discount: 0, message: 'Invalid promo code' };
+    }
+
+    // Check if active
+    if (!promoCode.isActive) {
+      return { valid: false, discount: 0, message: 'This promo code is no longer active' };
+    }
+
+    // Check date validity
+    const now = new Date();
+    if (now < new Date(promoCode.startDate)) {
+      return { valid: false, discount: 0, message: 'This promo code is not yet valid' };
+    }
+    if (now > new Date(promoCode.expiryDate)) {
+      return { valid: false, discount: 0, message: 'This promo code has expired' };
+    }
+
+    // Check usage limit
+    if (promoCode.maxUsageCount && promoCode.currentUsageCount >= promoCode.maxUsageCount) {
+      return { valid: false, discount: 0, message: 'This promo code has reached its usage limit' };
+    }
+
+    // Check minimum order value
+    if (promoCode.minOrderValue && subtotal < parseFloat(promoCode.minOrderValue)) {
+      return {
+        valid: false,
+        discount: 0,
+        message: `Minimum order value of $${parseFloat(promoCode.minOrderValue).toFixed(2)} required`,
+      };
+    }
+
+    // Check if promo applies to specific series or models (if bridges exist)
+    const seriesIds = promoCode.promoCodeSeriesBridge.map((b) => b.seriesId);
+    const modelIds = promoCode.promoCodeModelBridge.map((b) => b.modelId);
+
+    if (seriesIds.length > 0 || modelIds.length > 0) {
+      // Promo is restricted to specific series/models
+      const hasApplicableItem = cartItems.some((item) => {
+        const productSeriesId = item.product?.seriesId;
+        const productModelId = item.product?.deviceModelId;
+        return (
+          (seriesIds.length > 0 && seriesIds.includes(productSeriesId)) ||
+          (modelIds.length > 0 && modelIds.includes(productModelId))
+        );
+      });
+
+      if (!hasApplicableItem) {
+        return {
+          valid: false,
+          discount: 0,
+          message: 'This promo code does not apply to items in your cart',
+        };
+      }
+
+      // Calculate discount only for applicable items
+      let applicableSubtotal = 0;
+      for (const item of cartItems) {
+        const productSeriesId = item.product?.seriesId;
+        const productModelId = item.product?.deviceModelId;
+        if (
+          (seriesIds.length > 0 && seriesIds.includes(productSeriesId)) ||
+          (modelIds.length > 0 && modelIds.includes(productModelId))
+        ) {
+          applicableSubtotal += item.product.basePrice * item.quantity;
+        }
+      }
+
+      const discount = this.#calculateDiscount(promoCode, applicableSubtotal);
+      return {
+        valid: true,
+        discount,
+        promoCode: {
+          id: promoCode.id,
+          code: promoCode.code,
+          discountType: promoCode.discountType,
+          discountValue: parseFloat(promoCode.discountValue),
+        },
+        message: 'Promo code applied successfully',
+      };
+    }
+
+    // No restrictions, apply to entire order
+    const discount = this.#calculateDiscount(promoCode, subtotal);
+    return {
+      valid: true,
+      discount,
+      promoCode: {
+        id: promoCode.id,
+        code: promoCode.code,
+        discountType: promoCode.discountType,
+        discountValue: parseFloat(promoCode.discountValue),
+      },
+      message: 'Promo code applied successfully',
+    };
+  }
+
+  /**
+   * Calculate discount amount based on type
+   */
+  #calculateDiscount(promoCode, subtotal) {
+    if (promoCode.discountType === 'PERCENTAGE') {
+      const percentage = parseFloat(promoCode.discountValue);
+      return (subtotal * percentage) / 100;
+    } else if (promoCode.discountType === 'FIXED_AMOUNT') {
+      const fixedAmount = parseFloat(promoCode.discountValue);
+      // Don't exceed subtotal
+      return Math.min(fixedAmount, subtotal);
+    }
+    return 0;
+  }
+
+  /**
+   * Increment promo code usage count (called after successful order)
+   */
+  async incrementUsageCount(promoCodeId) {
+    await prisma.promoCode.update({
+      where: { id: promoCodeId },
+      data: { currentUsageCount: { increment: 1 } },
+    });
+  }
 }
 
 export default new PromoService();

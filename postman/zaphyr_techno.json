@@ -12,10 +12,17 @@
     { "key": "password", "value": "Admin@1234" },
     { "key": "newPassword", "value": "NewPassword123!" },
     { "key": "adminToken", "value": "" },
+    { "key": "userToken", "value": "" },
     { "key": "seriesId", "value": "" },
     { "key": "deviceModelId", "value": "" },
     { "key": "conditionId", "value": "" },
-    { "key": "sellRequestId", "value": "" }
+    { "key": "sellRequestId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "colorId", "value": "" },
+    { "key": "storageOptionId", "value": "" },
+    { "key": "ramOptionId", "value": "" },
+    { "key": "cartItemId", "value": "" },
+    { "key": "promoCode", "value": "SUMMER25" }
   ],
   "item": [
     {
@@ -132,6 +139,37 @@
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"type\": \"email-verification\"\n}",
               "options": { "raw": { "language": "json" } }
             }
+          }
+        },
+        {
+          "name": "Login (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "",
+                  "if (res.success && res.accessToken) {",
+                  "  pm.collectionVariables.set('userToken', res.accessToken);",
+                  "  console.log('[Postman] userToken saved:', res.accessToken.substring(0, 20) + '...');",
+                  "} else {",
+                  "  console.warn('[Postman] Login (User) did not return an accessToken.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"tirafin110@homvela.com\",\n  \"password\": \"Admin@1234\"\n}" }
           }
         },
         {
@@ -281,6 +319,114 @@
                   }
                 }
               ]
+            }
+          ]
+        }
+        ,
+        {
+          "name": "user",
+          "item": [
+                {
+                  "name": "Add To Cart (Auth)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "const res = pm.response.json();",
+                          "",
+                          "if (res.success && res.data && res.data.id) {",
+                          "  pm.collectionVariables.set('cartItemId', res.data.id);",
+                          "  console.log('[Postman] cartItemId saved:', res.data.id);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                    ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"colorId\": \"{{colorId}}\",\n  \"storageOptionId\": \"{{storageOptionId}}\",\n  \"ramOptionId\": \"{{ramOptionId}}\",\n  \"quantity\": 1\n}"
+                },
+                "url": { "raw": "{{baseUrl}}/api/cart", "host": ["{{baseUrl}}"], "path": ["api","cart"] }
+              }
+            },
+                {
+                  "name": "Get Cart (Auth)",
+                  "request": {
+                    "method": "GET",
+                    "header": [ { "key": "Authorization", "value": "Bearer {{userToken}}" } ],
+                    "url": { "raw": "{{baseUrl}}/api/cart", "host": ["{{baseUrl}}"], "path": ["api","cart"] }
+                  }
+                },
+                {
+                  "name": "Update Cart Item (Auth)",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                    ],
+                "body": { "mode": "raw", "raw": "{ \"quantity\": 2 }" },
+                "url": { "raw": "{{baseUrl}}/api/cart/:id", "host": ["{{baseUrl}}"], "path": ["api","cart",":id"], "variable": [{ "key": "id", "value": "{{cartItemId}}" }] }
+              }
+            },
+                {
+                  "name": "Remove Cart Item (Auth)",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [ { "key": "Authorization", "value": "Bearer {{userToken}}" } ],
+                    "url": { "raw": "{{baseUrl}}/api/cart/:id", "host": ["{{baseUrl}}"], "path": ["api","cart",":id"], "variable": [{ "key": "id", "value": "{{cartItemId}}" }] }
+                  }
+                },
+                {
+                  "name": "Clear Cart (Auth)",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [ { "key": "Authorization", "value": "Bearer {{userToken}}" } ],
+                    "url": { "raw": "{{baseUrl}}/api/cart", "host": ["{{baseUrl}}"], "path": ["api","cart"] }
+                  }
+                },
+                {
+                  "name": "Validate Promo Code (Auth)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                    ],
+                "body": { "mode": "raw", "raw": "{\n  \"promoCode\": \"{{promoCode}}\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/public/product/promo/validate", "host": ["{{baseUrl}}"], "path": ["api","public","product","promo","validate"] }
+              }
+            },
+                {
+                  "name": "Create Checkout Session (Auth)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{userToken}}" }
+                    ],
+                "body": { "mode": "raw", "raw": "{\n  \"cartItemIds\": [],\n  \"promoCode\": \"{{promoCode}}\",\n  \"shippingAddress\": {\n    \"fullName\": \"John Doe\",\n    \"phone\": \"+1 (555) 000-0000\",\n    \"street\": \"123 Main St\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"zipCode\": \"94103\",\n    \"country\": \"US\"\n  },\n  \"shippingMethod\": \"Standard Delivery\",\n  \"shippingCost\": 0\n}" },
+                "url": { "raw": "{{baseUrl}}/api/public/product/checkout", "host": ["{{baseUrl}}"], "path": ["api","public","product","checkout"] }
+              }
+            },
+                {
+                  "name": "Confirm Checkout Session",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      { "key": "Content-Type", "value": "application/json" }
+                    ],
+                "body": { "mode": "raw", "raw": "{\n  \"sessionId\": \"<stripe-session-id>\"\n}" },
+                "url": { "raw": "{{baseUrl}}/api/public/product/checkout/confirm", "host": ["{{baseUrl}}"], "path": ["api","public","product","checkout","confirm"] }
+              }
             }
           ]
         }

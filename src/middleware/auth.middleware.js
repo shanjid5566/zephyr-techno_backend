@@ -21,7 +21,11 @@ export const authenticate = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, secret);
-    req.user = decoded; // { sub, email, role, iat, exp }
+    // Normalize decoded token into req.user with `id` for convenience
+    req.user = {
+      ...decoded,
+      id: decoded.sub || decoded.id,
+    };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
