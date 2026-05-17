@@ -317,6 +317,28 @@ class AuthService {
   }
 
   /**
+   * Change password for an authenticated user.
+   * @param {string} userId
+   * @param {string} currentPassword
+   * @param {string} newPassword
+   */
+  async changePassword(userId, currentPassword, newPassword) {
+    if (!newPassword || newPassword.length < 8) throw new AppError('New password must be at least 8 characters long.', 400);
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+    if (!user) throw new AppError('User not found', 404);
+
+    const matches = await bcrypt.compare(currentPassword || '', user.passwordHash);
+    if (!matches) throw new AppError('Current password is incorrect', 401);
+
+    const passwordHash = await bcrypt.hash(newPassword, this.passwordSaltRounds);
+
+    const updated = await prisma.user.update({ where: { id: userId }, data: { passwordHash }, select: SANITIZE_SELECT });
+
+    return { message: 'Password changed successfully.', user: this.#sanitizeUser(updated) };
+  }
+
+  /**
    * Single resend-OTP endpoint for both flows.
    * type: 'email-verification' | 'password-reset'
    */

@@ -242,35 +242,44 @@ class OrderService {
    * Get user's orders
    */
   async getUserOrders(userId, query = {}) {
-    const { status } = query;
+    const { status, page = 1, limit = 50 } = query;
 
     const where = { userId, isDeleted: false };
     if (status) where.orderStatus = status;
 
-    const orders = await prisma.order.findMany({
-      where,
-      include: {
-        address: true,
-        orderItems: {
-          include: {
-            product: {
-              include: {
-                productGalleries: {
-                  orderBy: { displayOrder: "asc" },
-                  take: 1,
+    const take = Math.min(Number(limit) || 50, 100);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+
+    // Run count and findMany in parallel
+    const [total, orders] = await Promise.all([
+      prisma.order.count({ where }),
+      prisma.order.findMany({
+        where,
+        include: {
+          address: true,
+          orderItems: {
+            include: {
+              product: {
+                include: {
+                  productGalleries: {
+                    orderBy: { displayOrder: "asc" },
+                    take: 1,
+                  },
                 },
               },
+              color: true,
+              storageOption: true,
+              ramOption: true,
             },
-            color: true,
-            storageOption: true,
-            ramOption: true,
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+    ]);
 
-    return orders.map((order) => this.#formatOrder(order));
+    return { total, data: orders.map((order) => this.#formatOrder(order)) };
   }
 
   /**
@@ -315,6 +324,45 @@ class OrderService {
     }
 
     return this.#formatOrder(order, isAdmin);
+  }
+
+  /**
+   * Cancel an order by user with reason
+   */
+  async cancelOrderByUser(orderId, userId, reason) {
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new AppError('Order not found', 404);
+
+    // Only owner can cancel
+    if (order.userId !== userId) throw new AppError('Unauthorized to cancel this order', 403);
+
+    // Prevent cancelling already shipped/delivered/cancelled orders
+    if (['SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.orderStatus)) {
+      throw new AppError('Order cannot be cancelled at this stage', 400);
+    }
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        orderStatus: 'CANCELLED',
+        cancellationReason: reason || null,
+        cancelledAt: new Date(),
+      },
+      include: {
+        address: true,
+        user: { select: { id: true, email: true } },
+        orderItems: {
+          include: {
+            product: { include: { productGalleries: { orderBy: { displayOrder: 'asc' }, take: 1 } } },
+            color: true,
+            storageOption: true,
+            ramOption: true,
+          },
+        },
+      },
+    });
+
+    return this.#formatOrder(updated, true);
   }
 
   /**

@@ -8,6 +8,7 @@ publicRouter.use(authenticate);
 publicRouter.post('/', orderController.createOrder);
 publicRouter.get('/', orderController.getUserOrders);
 publicRouter.get('/:id', orderController.getOrderById);
+publicRouter.post('/:id/cancel', orderController.cancelOrder);
 
 // Admin order routes
 const adminRouter = Router();

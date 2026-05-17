@@ -34,6 +34,21 @@ class UsersController {
     res.status(200).json({ success: true, data });
   });
 
+  /**
+   * GET /api/users/me
+   * Return current authenticated user's profile
+   */
+  getProfile = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const profile = await usersService.getProfile(userId);
+    res.status(200).json({ success: true, data: profile });
+  });
+
+  /**
+   * POST /api/users/change-password
+   */
+  // changePassword moved to AuthController to keep auth flows centralized
+
 
 
   updateUser = asyncHandler(async (req, res) => {

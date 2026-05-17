@@ -27,12 +27,24 @@ class OrderController {
    */
   getUserOrders = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const orders = await orderService.getUserOrders(userId, req.query);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
 
-    res.status(200).json({
-      success: true,
-      data: orders,
-    });
+    const result = await orderService.getUserOrders(userId, { ...req.query, page, limit });
+
+    const total = result.total || 0;
+    const totalPages = Math.max(Math.ceil(total / limit), 1);
+    const meta = {
+      total,
+      page,
+      limit,
+      totalPages,
+      count: result.data.length,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    };
+
+    res.status(200).json({ success: true, data: result.data, meta });
   });
 
   /**
@@ -50,6 +62,24 @@ class OrderController {
       success: true,
       data: order,
     });
+  });
+
+  /**
+   * POST /api/orders/:id/cancel
+   * Cancel order by authenticated user with a reason
+   */
+  cancelOrder = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length < 3) {
+      return res.status(400).json({ success: false, message: 'Cancellation reason is required (min 3 chars)' });
+    }
+
+    const cancelled = await orderService.cancelOrderByUser(id, userId, reason);
+
+    res.status(200).json({ success: true, message: 'Order cancelled', data: cancelled });
   });
 
   /**

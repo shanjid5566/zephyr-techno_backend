@@ -44,6 +44,19 @@ class AuthController {
     const result = await this.authService.resendOtp(req.body);
     res.status(200).json({ success: true, ...result });
   });
+
+  /**
+   * POST /api/auth/change-password
+   * Body: { currentPassword, newPassword }
+   */
+  changePassword = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ success: false, message: 'currentPassword and newPassword are required' });
+
+    const result = await this.authService.changePassword(userId, currentPassword, newPassword);
+    res.status(200).json({ success: true, ...result });
+  });
 }
 
 export default new AuthController();

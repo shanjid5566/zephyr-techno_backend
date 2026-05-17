@@ -68,6 +68,31 @@ class UserService {
     return user;
   }
 
+  async getProfile(userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        status: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!user) throw new AppError('User not found', 404);
+    return user;
+  }
+
+  async changePassword(userId, currentPassword, newPassword) {
+    // Defer to AuthService for password management. Kept placeholder for compatibility.
+    throw new Error('changePassword moved to AuthService. Use AuthService.changePassword instead.');
+  }
+
 
   async updateUser(id, data) {
     const updateData = {};

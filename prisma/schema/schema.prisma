@@ -450,6 +450,8 @@ model Order {
   paymentMethod   PaymentMethod @default(STRIPE)
   paymentIntentId String?
   trackingNumber  String?
+  cancellationReason String?
+  cancelledAt       DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
