@@ -65,5 +65,10 @@ adminAttributesRoutes.get('/ram-options', ctrl.getAllRamOptions);
 adminAttributesRoutes.get('/ram-options/:id', ctrl.getRamOptionById);
 adminAttributesRoutes.patch('/ram-options/:id', ctrl.updateRamOption);
 adminAttributesRoutes.delete('/ram-options/:id', ctrl.deleteRamOption);
+// Public routes (no auth) for product listing filters
+import { Router as PublicRouter } from 'express';
+const publicAttributesRoutes = PublicRouter();
+publicAttributesRoutes.get('/attributes', ctrl.getPublicProductAttributes);
 
 export default adminAttributesRoutes;
+export { publicAttributesRoutes };

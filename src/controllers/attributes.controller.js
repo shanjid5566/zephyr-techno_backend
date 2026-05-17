@@ -18,6 +18,12 @@ class AttributesController {
     res.status(200).json({ success: true, data });
   });
 
+  // Public consolidated attributes for product listing filters
+  getPublicProductAttributes = asyncHandler(async (req, res) => {
+    const response = await this.service.getPublicAttributes();
+    res.status(200).json({ success: true, data: response });
+  });
+
   // ─── CATEGORY ────────────────────────────────────────────────
 
   createCategory = asyncHandler(async (req, res) => {

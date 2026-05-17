@@ -181,52 +181,66 @@
                   }
                 }
               ]
+            },
+            {
+              "name": "sell",
+              "item": [
+                {
+                  "name": "Get All Series (Public)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": { "raw": "{{baseUrl}}/api/sell/series", "host": ["{{baseUrl}}"], "path": ["api","sell","series"] }
+                  }
+                },
+                {
+                  "name": "Get Models By Series (Public)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": { "raw": "{{baseUrl}}/api/sell/models?seriesId={{seriesId}}", "host": ["{{baseUrl}}"], "path": ["api","sell","models"], "query": [{ "key": "seriesId", "value": "{{seriesId}}" }] }
+                  }
+                },
+                {
+                  "name": "Get All Conditions (Public)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": { "raw": "{{baseUrl}}/api/sell/conditions", "host": ["{{baseUrl}}"], "path": ["api","sell","conditions"] }
+                  }
+                },
+                {
+                  "name": "Get Price (Public)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": { "raw": "{{baseUrl}}/api/sell/price?conditionId={{conditionId}}&deviceModelId={{deviceModelId}}", "host": ["{{baseUrl}}"], "path": ["api","sell","price"], "query": [ { "key": "conditionId", "value": "{{conditionId}}" }, { "key": "deviceModelId", "value": "{{deviceModelId}}" } ] }
+                  }
+                },
+                {
+                  "name": "Finalize Sale (Public)",
+                  "request": {
+                    "method": "POST",
+                    "header": [ { "key": "Content-Type", "value": "application/json" } ],
+                    "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+8801712345678\",\n  \"deviceName\": \"iPhone 14\",\n  \"deviceModelId\": \"{{deviceModelId}}\",\n  \"conditionId\": \"{{conditionId}}\",\n  \"baseOfferPrice\": 300.00\n}" },
+                    "url": { "raw": "{{baseUrl}}/api/sell/finalize", "host": ["{{baseUrl}}"], "path": ["api","sell","finalize"] }
+                  }
+                }
+              ]
             }
-          ]
-        },
-        {
-          "name": "sell",
-          "item": [
+            ,
             {
-              "name": "Get All Series (Public)",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": { "raw": "{{baseUrl}}/api/sell/series", "host": ["{{baseUrl}}"], "path": ["api","sell","series"] }
-              }
-            },
-            {
-              "name": "Get Models By Series (Public)",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": { "raw": "{{baseUrl}}/api/sell/models?seriesId={{seriesId}}", "host": ["{{baseUrl}}"], "path": ["api","sell","models"], "query": [{ "key": "seriesId", "value": "{{seriesId}}" }] }
-              }
-            },
-            {
-              "name": "Get All Conditions (Public)",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": { "raw": "{{baseUrl}}/api/sell/conditions", "host": ["{{baseUrl}}"], "path": ["api","sell","conditions"] }
-              }
-            },
-            {
-              "name": "Get Price (Public)",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": { "raw": "{{baseUrl}}/api/sell/price?conditionId={{conditionId}}&deviceModelId={{deviceModelId}}", "host": ["{{baseUrl}}"], "path": ["api","sell","price"], "query": [ { "key": "conditionId", "value": "{{conditionId}}" }, { "key": "deviceModelId", "value": "{{deviceModelId}}" } ] }
-              }
-            },
-            {
-              "name": "Finalize Sale (Public)",
-              "request": {
-                "method": "POST",
-                "header": [ { "key": "Content-Type", "value": "application/json" } ],
-                "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+8801712345678\",\n  \"deviceName\": \"iPhone 14\",\n  \"deviceModelId\": \"{{deviceModelId}}\",\n  \"conditionId\": \"{{conditionId}}\",\n  \"baseOfferPrice\": 300.00\n}" },
-                "url": { "raw": "{{baseUrl}}/api/sell/finalize", "host": ["{{baseUrl}}"], "path": ["api","sell","finalize"] }
-              }
+              "name": "product",
+              "item": [
+                {
+                  "name": "Get All Attributes (Public)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": { "raw": "{{baseUrl}}/api/public/product/attributes", "host": ["{{baseUrl}}"], "path": ["api","public","product","attributes"] }
+                  }
+                }
+              ]
             }
           ]
         }
@@ -315,6 +329,7 @@
                 }
               ]
             },
+            
             {
               "name": "Series",
               "item": [

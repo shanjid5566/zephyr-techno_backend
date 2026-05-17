@@ -12,6 +12,10 @@ import AppError from '../utils/app-error.js';
  *  - RamOption
  */
 class AttributesService {
+  constructor() {
+    this._publicAttributesCache = { ts: 0, data: null };
+    this.PUBLIC_ATTRS_TTL = 30 * 1000; // 30 seconds cache for public attributes
+  }
 
   // ─────────────────────────────────────────────────────────────
   // CATEGORY
@@ -449,6 +453,42 @@ class AttributesService {
     ]);
 
     return { categories, series, models, conditions, colors, storageOptions, ramOptions };
+  }
+
+  /**
+   * Return the public attributes payload used by the product listing page.
+   * Uses an in-memory TTL cache to dramatically reduce DB load and latency.
+   */
+  async getPublicAttributes() {
+    const now = Date.now();
+    if (this._publicAttributesCache.data && (now - this._publicAttributesCache.ts) < this.PUBLIC_ATTRS_TTL) {
+      return this._publicAttributesCache.data;
+    }
+
+    const opts = await this.getAllAttributeOptions();
+    const conditions = opts.conditions || [];
+    const categories = opts.categories || [];
+
+    const newCategory = categories.find((cat) => String(cat.name || '').toLowerCase() === 'new');
+    const usedCategory = categories.find((cat) => String(cat.name || '').toLowerCase() === 'used');
+
+    const usedConds = conditions.filter((c) => String(c.name || '').toLowerCase() !== 'new');
+
+    const response = {
+      conditions: [
+        { key: 'ALL', name: 'All', items: [] },
+        { key: 'NEW', id: newCategory ? newCategory.id : null, name: 'New', items: [] },
+        { key: 'USED', id: usedCategory ? usedCategory.id : null, name: 'Used', items: usedConds },
+      ],
+      series: opts.series || [],
+      colors: opts.colors || [],
+      storageOptions: opts.storageOptions || [],
+      ramOptions: opts.ramOptions || [],
+      categories: categories,
+    };
+
+    this._publicAttributesCache = { ts: now, data: response };
+    return response;
   }
 
   // ─────────────────────────────────────────────────────────────
