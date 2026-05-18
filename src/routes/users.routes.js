@@ -6,6 +6,7 @@ import { authenticate, adminGuard } from '../middleware/auth.middleware.js';
 const publicRouter = Router();
 publicRouter.get('/', (req, res) => res.status(200).json({ message: 'User routes are working' }));
 publicRouter.get('/me', authenticate, usersController.getProfile);
+publicRouter.put('/me', authenticate, usersController.updateProfile);
 
 // Admin routes (exported as named `adminRouter`)
 const adminRouter = Router();

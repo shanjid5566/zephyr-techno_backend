@@ -681,6 +681,39 @@
               "response": []
             },
             {
+              "name": "Update Profile (Auth)",
+              "description": "Update authenticated user's profile information.\n\nPersonal Information Fields:\n- firstName (string): User's first name\n- lastName (string): User's last name  \n- phone (string): User's phone number\n\nAddress Fields (in addresses array):\n- fullName (string, optional): Full name for address. Auto-generated from firstName + lastName if not provided\n- phone (string, optional): Phone number for address\n- street (string, required): Street address\n- city (string, required): City\n- state (string, optional): State/Province\n- zipCode (string, required): Postal code\n- country (string, required): Country\n- isDefault (boolean, optional): Set as default address\n\nRules:\n- At least one field must be provided\n- Email, role, and status cannot be updated\n- You can update personal info, addresses, or both\n- If no fullName provided for address, auto-generated from updated firstName + lastName\n- Response includes all updated data with addresses",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"Kevin\",\n  \"lastName\": \"Updated Last Name\",\n  \"phone\": \"+1-202-555-0118\",\n  \"addresses\": [\n    {\n      \"street\": \"Road No. 13/A, House no. 1320/C, Flat No. 5D\",\n      \"city\": \"Montgomery\",\n      \"state\": \"Alabama\",\n      \"zipCode\": \"1000\",\n      \"country\": \"US\"\n   }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
               "name": "Add To Cart (Auth)",
               "event": [
                 {

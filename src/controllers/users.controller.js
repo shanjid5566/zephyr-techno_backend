@@ -45,6 +45,28 @@ class UsersController {
   });
 
   /**
+   * PUT /api/users/me
+   * Update current authenticated user's profile
+   */
+  updateProfile = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { firstName, lastName, phone, addresses } = req.body;
+    
+    const updateData = {};
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (phone !== undefined) updateData.phone = phone;
+    if (addresses !== undefined) updateData.addresses = addresses;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ success: false, message: 'No fields to update provided' });
+    }
+
+    const updated = await usersService.updateUserProfile(userId, updateData);
+    res.status(200).json({ success: true, message: 'Profile updated successfully.', data: updated });
+  });
+
+  /**
    * POST /api/users/change-password
    */
   // changePassword moved to AuthController to keep auth flows centralized
