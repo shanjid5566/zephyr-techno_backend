@@ -399,7 +399,7 @@ class ProductService {
   /**
    * Get product by ID
    */
-  async getProductById(id) {
+  async getProductById(id, includeRelated = false) {
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
@@ -433,7 +433,39 @@ class ProductService {
       throw new AppError("Product not found", 404);
     }
 
-    return this.#formatProduct(product);
+    const formatted = this.#formatProduct(product);
+
+    // Fetch up to 8 related products from the same series (public only)
+    if (includeRelated) {
+      const relatedProducts = await prisma.product.findMany({
+        where: {
+          seriesId: product.seriesId,
+          id: { not: id },
+          isDeleted: false,
+          listingStatus: 'ACTIVE',
+        },
+        include: {
+          productGalleries: {
+            take: 1,
+            orderBy: { displayOrder: 'asc' },
+          },
+          series: { select: { id: true, name: true } },
+        },
+        take: 8,
+      });
+
+      formatted.relatedProducts = relatedProducts.map(p => ({
+        id: p.id,
+        title: p.title,
+        basePrice: parseFloat(p.basePrice),
+        thumbnail: p.productGalleries?.[0] 
+          ? buildImageUrl(p.productGalleries[0].imageUrl)
+          : null,
+        series: p.series,
+      }));
+    }
+
+    return formatted;
   }
 
   /**

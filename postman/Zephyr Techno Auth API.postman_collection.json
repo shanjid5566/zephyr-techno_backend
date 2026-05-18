@@ -2480,7 +2480,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/admin/dashboard/revenue-overview",
+                  "raw": "{{baseUrl}}/api/admin/dashboard/revenue-overview?year=2026",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -2489,6 +2489,13 @@
                     "admin",
                     "dashboard",
                     "revenue-overview"
+                  ],
+                  "query": [
+                    {
+                      "key": "year",
+                      "value": "2026",
+                      "description": "Filter revenue by year (e.g., 2026). Returns monthly revenue breakdown for that year."
+                    }
                   ]
                 }
               },
@@ -3570,6 +3577,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
+                "description": "Retrieve all orders with pagination. For cancelled orders, the response includes `cancelledAt` (timestamp) and `cancellationReason` (reason provided by user when cancelling the order).",
                 "url": {
                   "raw": "{{baseUrl}}/api/admin/orders?page=1&limit=20",
                   "host": [

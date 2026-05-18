@@ -3,7 +3,7 @@ import compression from 'compression';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/users.routes.js';
 import adminAttributesRoutes from './routes/attributes.routes.js';
-import adminProductRoutes from './routes/product.routes.js';
+import publicProductRoutes, { adminRouter as adminProductRoutes } from './routes/product.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import orderRoutes from './routes/orders.routes.js';
 import contactRoutes, { adminRouter as adminContactRoutes } from './routes/contact.routes.js';
@@ -12,7 +12,6 @@ import { adminRouter as adminDashboardRoutes } from './routes/dashboard.routes.j
 import { adminRouter as adminOrderRoutes } from './routes/orders.routes.js';
 import { adminRouter as adminUsersRoutes } from './routes/users.routes.js';
 import sellRoutes, { adminRouter as adminSellRoutes } from './routes/sell.routes.js';
-import publicProductRoutes from './routes/public/product.routes.js';
 import env from './config/env.js';
 
 const app = express();
@@ -27,6 +26,16 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from 'uploads' directory
 app.use('/uploads', express.static('uploads'));
 
+// Health check
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'OK',
+    message: 'Server is running',
+    health: '/health',
+    timestamp: new Date().toISOString(),
+  });
+});
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({

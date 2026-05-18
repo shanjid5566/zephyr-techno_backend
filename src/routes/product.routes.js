@@ -1,29 +1,29 @@
 import { Router } from 'express';
 import productController from '../controllers/product.controller.js';
+import paymentsController from '../controllers/payments.controller.js';
+import attributesController from '../controllers/attributes.controller.js';
+import promoController from '../controllers/promo.controller.js';
 import { authenticate, adminGuard } from '../middleware/auth.middleware.js';
 import upload from '../middleware/upload.middleware.js';
 
-const productRoutes = Router();
+// Public product routes
+const publicRouter = Router();
+publicRouter.get('/attributes', attributesController.getPublicProductAttributes);
+publicRouter.get('/:id', productController.getProductById);
+publicRouter.get('/', productController.getAllProducts);
+publicRouter.post('/promo/validate', authenticate, promoController.validatePromoCode);
+publicRouter.post('/checkout', authenticate, paymentsController.createCheckoutSession);
+publicRouter.post('/checkout/confirm', paymentsController.confirmCheckoutSession);
 
-// Apply authentication and admin guard to all routes
-productRoutes.use(authenticate, adminGuard);
+// Admin product routes
+const adminRouter = Router();
+adminRouter.use(authenticate, adminGuard);
+adminRouter.post('/', upload.array('images', 10), productController.createProduct);
+adminRouter.get('/', productController.getAllProducts);
+adminRouter.get('/:id', productController.getProductById);
+adminRouter.patch('/:id', upload.array('images', 10), productController.updateProduct);
+adminRouter.delete('/:id', productController.deleteProduct);
+adminRouter.patch('/:id/feature', productController.changeFeatured);
 
-// Create product (accepts up to 10 images)
-productRoutes.post('/', upload.array('images', 10), productController.createProduct);
-
-// Get all products (with optional filtering via query params)
-productRoutes.get('/', productController.getAllProducts);
-
-// Get single product
-productRoutes.get('/:id', productController.getProductById);
-
-// Update product (accepts up to 10 images for adding new ones)
-productRoutes.patch('/:id', upload.array('images', 10), productController.updateProduct);
-
-// Soft Delete product
-productRoutes.delete('/:id', productController.deleteProduct);
-
-// Toggle featured status (admin only)
-productRoutes.patch('/:id/feature', productController.changeFeatured);
-
-export default productRoutes;
+export default publicRouter;
+export { adminRouter };

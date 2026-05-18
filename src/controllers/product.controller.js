@@ -17,7 +17,8 @@ class ProductController {
   });
 
   getProductById = asyncHandler(async (req, res) => {
-    const data = await productService.getProductById(req.params.id);
+    const isPublic = req.baseUrl.includes('/api/public');
+    const data = await productService.getProductById(req.params.id, isPublic);
     res.status(200).json({ success: true, data });
   });
 

@@ -293,7 +293,23 @@ class OrderService {
   async getOrderById(orderId, userId, isAdmin = false) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: {
+      select: {
+        id: true,
+        stringId: true,
+        userId: true,
+        orderStatus: true,
+        totalPrice: true,
+        shippingCost: true,
+        shippingMethod: true,
+        discountTotal: true,
+        paymentStatus: true,
+        paymentMethod: true,
+        paymentIntentId: true,
+        trackingNumber: true,
+        cancellationReason: true,
+        cancelledAt: true,
+        createdAt: true,
+        updatedAt: true,
         address: {
           select: { fullName: true, phone: true, street: true, city: true, state: true, zipCode: true, country: true },
         },
@@ -795,6 +811,11 @@ class OrderService {
         id: order.user.id,
         email: order.user.email,
       };
+      // Include cancellation info for cancelled orders
+      if (order.orderStatus === 'CANCELLED') {
+        formatted.cancelledAt = order.cancelledAt;
+        formatted.cancellationReason = order.cancellationReason;
+      }
     }
 
     return formatted;
