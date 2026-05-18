@@ -15,10 +15,10 @@ const adapter = new PrismaPg({
   connectionString,
   // Connection pool configuration for better performance
   pool: {
-    max: 10,              // Maximum number of connections in the pool
+    max: 20,              // Maximum number of connections in the pool (increased to handle bursts)
     min: 2,               // Minimum number of connections to maintain
-    idleTimeoutMillis: 30000,  // Close idle connections after 30 seconds
-    connectionTimeoutMillis: 5000,  // Timeout for acquiring a connection
+    idleTimeoutMillis: 60000,  // Close idle connections after 60 seconds
+    connectionTimeoutMillis: 20000,  // Timeout for acquiring a connection (increased to 20s)
   }
 });
 

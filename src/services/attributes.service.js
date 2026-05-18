@@ -14,7 +14,7 @@ import AppError from '../utils/app-error.js';
 class AttributesService {
   constructor() {
     this._publicAttributesCache = { ts: 0, data: null };
-    this.PUBLIC_ATTRS_TTL = 30 * 1000; // 30 seconds cache for public attributes
+    this.PUBLIC_ATTRS_TTL = 5 * 60 * 1000; // 5-minute cache — public attributes change infrequently
   }
 
   // ─────────────────────────────────────────────────────────────

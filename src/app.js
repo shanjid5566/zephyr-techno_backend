@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/users.routes.js';
 import adminAttributesRoutes from './routes/attributes.routes.js';
@@ -7,6 +8,7 @@ import cartRoutes from './routes/cart.routes.js';
 import orderRoutes from './routes/orders.routes.js';
 import contactRoutes, { adminRouter as adminContactRoutes } from './routes/contact.routes.js';
 import adminPromoRoutes from './routes/promo.routes.js';
+import { adminRouter as adminDashboardRoutes } from './routes/dashboard.routes.js';
 import { adminRouter as adminOrderRoutes } from './routes/orders.routes.js';
 import { adminRouter as adminUsersRoutes } from './routes/users.routes.js';
 import sellRoutes, { adminRouter as adminSellRoutes } from './routes/sell.routes.js';
@@ -14,6 +16,9 @@ import publicProductRoutes from './routes/public/product.routes.js';
 import env from './config/env.js';
 
 const app = express();
+
+// Compress all responses (gzip/deflate) — reduces payload size by 40-80%
+app.use(compression());
 
 // Body parsers
 app.use(express.json());
@@ -40,6 +45,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/admin/attributes', adminAttributesRoutes);
 app.use('/api/admin/products', adminProductRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/sell-requests', adminSellRoutes);
 app.use('/api/contact', contactRoutes);
@@ -73,6 +79,4 @@ app.use((err, req, res, next) => {
 });
 
 export default app;
-// touch to restart nodemon
-
 // touch to restart nodemon

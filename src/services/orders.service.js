@@ -256,20 +256,25 @@ class OrderService {
       prisma.order.findMany({
         where,
         include: {
-          address: true,
+          address: {
+            select: { fullName: true, phone: true, street: true, city: true, state: true, zipCode: true, country: true },
+          },
           orderItems: {
             include: {
               product: {
-                include: {
+                select: {
+                  id: true,
+                  title: true,
                   productGalleries: {
-                    orderBy: { displayOrder: "asc" },
+                    select: { imageUrl: true },
+                    orderBy: { displayOrder: 'asc' },
                     take: 1,
                   },
                 },
               },
-              color: true,
-              storageOption: true,
-              ramOption: true,
+              color: { select: { id: true, name: true } },
+              storageOption: { select: { id: true, name: true } },
+              ramOption: { select: { id: true, name: true } },
             },
           },
         },
@@ -289,7 +294,9 @@ class OrderService {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        address: true,
+        address: {
+          select: { fullName: true, phone: true, street: true, city: true, state: true, zipCode: true, country: true },
+        },
         user: {
           select: {
             id: true,
@@ -299,16 +306,19 @@ class OrderService {
         orderItems: {
           include: {
             product: {
-              include: {
+              select: {
+                id: true,
+                title: true,
                 productGalleries: {
-                  orderBy: { displayOrder: "asc" },
+                  select: { imageUrl: true },
+                  orderBy: { displayOrder: 'asc' },
                   take: 1,
                 },
               },
             },
-            color: true,
-            storageOption: true,
-            ramOption: true,
+            color: { select: { id: true, name: true } },
+            storageOption: { select: { id: true, name: true } },
+            ramOption: { select: { id: true, name: true } },
           },
         },
       },
@@ -349,14 +359,22 @@ class OrderService {
         cancelledAt: new Date(),
       },
       include: {
-        address: true,
+        address: {
+          select: { fullName: true, phone: true, street: true, city: true, state: true, zipCode: true, country: true },
+        },
         user: { select: { id: true, email: true } },
         orderItems: {
           include: {
-            product: { include: { productGalleries: { orderBy: { displayOrder: 'asc' }, take: 1 } } },
-            color: true,
-            storageOption: true,
-            ramOption: true,
+            product: {
+              select: {
+                id: true,
+                title: true,
+                productGalleries: { select: { imageUrl: true }, orderBy: { displayOrder: 'asc' }, take: 1 },
+              },
+            },
+            color: { select: { id: true, name: true } },
+            storageOption: { select: { id: true, name: true } },
+            ramOption: { select: { id: true, name: true } },
           },
         },
       },
@@ -388,7 +406,9 @@ class OrderService {
       where: { id: orderId },
       data: { orderStatus: status },
       include: {
-        address: true,
+        address: {
+          select: { fullName: true, phone: true, street: true, city: true, state: true, zipCode: true, country: true },
+        },
         user: {
           select: {
             id: true,
@@ -398,16 +418,19 @@ class OrderService {
         orderItems: {
           include: {
             product: {
-              include: {
+              select: {
+                id: true,
+                title: true,
                 productGalleries: {
-                  orderBy: { displayOrder: "asc" },
+                  select: { imageUrl: true },
+                  orderBy: { displayOrder: 'asc' },
                   take: 1,
                 },
               },
             },
-            color: true,
-            storageOption: true,
-            ramOption: true,
+            color: { select: { id: true, name: true } },
+            storageOption: { select: { id: true, name: true } },
+            ramOption: { select: { id: true, name: true } },
           },
         },
       },
@@ -427,7 +450,9 @@ class OrderService {
         paymentStatus,
       },
       include: {
-        address: true,
+        address: {
+          select: { fullName: true, phone: true, street: true, city: true, state: true, zipCode: true, country: true },
+        },
         user: {
           select: {
             id: true,
@@ -437,16 +462,19 @@ class OrderService {
         orderItems: {
           include: {
             product: {
-              include: {
+              select: {
+                id: true,
+                title: true,
                 productGalleries: {
-                  orderBy: { displayOrder: "asc" },
+                  select: { imageUrl: true },
+                  orderBy: { displayOrder: 'asc' },
                   take: 1,
                 },
               },
             },
-            color: true,
-            storageOption: true,
-            ramOption: true,
+            color: { select: { id: true, name: true } },
+            storageOption: { select: { id: true, name: true } },
+            ramOption: { select: { id: true, name: true } },
           },
         },
       },
@@ -468,7 +496,9 @@ class OrderService {
     const orders = await prisma.order.findMany({
       where,
       include: {
-        address: true,
+        address: {
+          select: { fullName: true, phone: true, street: true, city: true, state: true, zipCode: true, country: true },
+        },
         user: {
           select: {
             id: true,
@@ -478,16 +508,19 @@ class OrderService {
         orderItems: {
           include: {
             product: {
-              include: {
+              select: {
+                id: true,
+                title: true,
                 productGalleries: {
-                  orderBy: { displayOrder: "asc" },
+                  select: { imageUrl: true },
+                  orderBy: { displayOrder: 'asc' },
                   take: 1,
                 },
               },
             },
-            color: true,
-            storageOption: true,
-            ramOption: true,
+            color: { select: { id: true, name: true } },
+            storageOption: { select: { id: true, name: true } },
+            ramOption: { select: { id: true, name: true } },
           },
         },
       },
@@ -526,6 +559,149 @@ class OrderService {
     formatted.TOTAL = Object.values(formatted).reduce((sum, count) => sum + count, 0);
 
     return formatted;
+  }
+
+  /**
+   * Get revenue overview for admin dashboard
+   * Returns monthly totals for the current year and previous year
+   */
+  async getRevenueOverview(filterYear = null) {
+    const now = new Date();
+    const todayYear = now.getUTCFullYear();
+    const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const sum = (arr) => arr.reduce((s, v) => s + Number(v || 0), 0);
+
+    // Helper: query monthly revenue totals for one calendar year
+    const fetchYear = async (year) => {
+      const start = new Date(Date.UTC(year, 0, 1));
+      const end   = new Date(Date.UTC(year + 1, 0, 1));
+      const rows = await prisma.$queryRaw`
+        SELECT to_char(date_trunc('month', "createdAt"), 'YYYY-MM') as month,
+               COALESCE(SUM(CAST("totalPrice" AS numeric)), 0) as total
+        FROM   "Order"
+        WHERE  "isDeleted" = false
+          AND  "paymentStatus" = 'PAID'
+          AND  "createdAt" >= ${start}
+          AND  "createdAt" <  ${end}
+        GROUP  BY month
+        ORDER  BY month;
+      `;
+      const monthly = Array(12).fill(0);
+      for (const row of rows) {
+        const idx = Number((row.month || '').split('-')[1]) - 1;
+        if (idx >= 0 && idx < 12) monthly[idx] = parseFloat(row.total) || 0;
+      }
+      return { year, monthly, total: sum(monthly) };
+    };
+
+    // If a specific year is requested, return only that year
+    if (filterYear) {
+      const yearData = await fetchYear(filterYear);
+      return { labels: monthLabels, year: yearData };
+    }
+
+    // Default: return both current and previous year in parallel
+    const [currentYear, previousYear] = await Promise.all([
+      fetchYear(todayYear),
+      fetchYear(todayYear - 1),
+    ]);
+
+    return { labels: monthLabels, currentYear, previousYear };
+  }
+
+  /**
+   * Get dashboard overview values: status cards and recent orders
+   */
+  async getDashboardOverview() {
+    // Run all independent queries in parallel for performance
+    const [
+      totalSalesAgg,
+      activeOrders,
+      pendingOrders,
+      completedOrders,
+      cancelledOrders,
+      totalActiveProducts,
+      newPhones,
+      recent,
+    ] = await Promise.all([
+      // Total revenue from paid orders
+      prisma.order.aggregate({
+        _sum: { totalPrice: true },
+        where: { isDeleted: false, paymentStatus: 'PAID' },
+      }),
+      // Active orders = pending + processing + shipped
+      prisma.order.count({
+        where: { isDeleted: false, orderStatus: { in: ['PENDING', 'PROCESSING', 'SHIPPED'] } },
+      }),
+      prisma.order.count({ where: { isDeleted: false, orderStatus: 'PENDING' } }),
+      prisma.order.count({ where: { isDeleted: false, orderStatus: 'DELIVERED' } }),
+      prisma.order.count({ where: { isDeleted: false, orderStatus: 'CANCELLED' } }),
+      // All active products regardless of category
+      prisma.product.count({ where: { isDeleted: false, listingStatus: 'ACTIVE' } }),
+      // "New" phones = products in the "New" category
+      prisma.product.count({
+        where: {
+          isDeleted: false,
+          listingStatus: 'ACTIVE',
+          category: { name: { equals: 'New', mode: 'insensitive' } },
+        },
+      }),
+      // Recent orders (latest 5)
+      prisma.order.findMany({
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: {
+          user: { select: { id: true, email: true } },
+          orderItems: {
+            include: {
+              product: { select: { id: true, title: true, productGalleries: { select: { imageUrl: true }, orderBy: { displayOrder: 'asc' }, take: 1 } } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const totalSales = parseFloat(totalSalesAgg._sum.totalPrice || 0);
+    // usedPhones = products in the "Used" category
+    const usedPhones = await prisma.product.count({
+      where: {
+        isDeleted: false,
+        listingStatus: 'ACTIVE',
+        category: { name: { equals: 'Used', mode: 'insensitive' } },
+      },
+    });
+
+    const recentOrders = recent.map((o) => {
+      const firstItem = o.orderItems && o.orderItems[0];
+      const thumbnail = firstItem && firstItem.product && firstItem.product.productGalleries && firstItem.product.productGalleries[0]
+        ? buildImageUrl(firstItem.product.productGalleries[0].imageUrl)
+        : null;
+
+      return {
+        id: o.id,
+        orderId: o.stringId,
+        totalPrice: parseFloat(o.totalPrice),
+        status: o.orderStatus,
+        paymentStatus: o.paymentStatus,
+        customer: o.user ? { id: o.user.id, email: o.user.email } : null,
+        product: firstItem && firstItem.product ? { id: firstItem.product.id, title: firstItem.product.title, thumbnail } : null,
+        createdAt: o.createdAt,
+      };
+    });
+
+    return {
+      cards: {
+        totalSales,
+        activeOrders,
+        newPhones,
+        usedPhones,
+        pendingOrders,
+        completedOrders,
+        cancelledOrders,
+      },
+      recentOrders,
+    };
   }
 
   /**

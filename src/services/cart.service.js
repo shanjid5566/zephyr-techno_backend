@@ -151,28 +151,33 @@ class CartService {
    * Get user's cart with all items
    */
   async getCart(userId) {
-    const cart = await prisma.cart.findUnique({ where: { userId } });
-    if (!cart) return { items: [], subtotal: 0, totalItems: 0 };
-
-    const cartItems = await prisma.cartItem.findMany({
-      where: { cartId: cart.id },
+    // Single query: fetch cart + all its active items in one DB round-trip
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
       include: {
-        product: {
+        cartItems: {
+          where: { isDeleted: false },
           include: {
-            productGalleries: {
-              orderBy: { displayOrder: 'asc' },
-              take: 1,
+            product: {
+              include: {
+                productGalleries: {
+                  orderBy: { displayOrder: 'asc' },
+                  take: 1,
+                },
+              },
             },
+            color: true,
+            storageOption: true,
+            ramOption: true,
           },
+          orderBy: { createdAt: 'desc' },
         },
-        color: true,
-        storageOption: true,
-        ramOption: true,
       },
-      orderBy: { createdAt: 'desc' },
     });
 
-    const items = cartItems.map((item) => this.#formatCartItem(item));
+    if (!cart) return { items: [], subtotal: 0, totalItems: 0 };
+
+    const items = cart.cartItems.map((item) => this.#formatCartItem(item));
 
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);

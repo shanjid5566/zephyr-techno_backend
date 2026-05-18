@@ -109,6 +109,32 @@ class OrderController {
   });
 
   /**
+   * GET /api/admin/orders/revenue-overview
+   * Returns monthly revenue for the current and previous year (admin only)
+   */
+  getRevenueOverview = asyncHandler(async (req, res) => {
+    // Optional ?year=YYYY — returns that specific year only.
+    // Without it, returns both current and previous year.
+    const year = req.query.year ? parseInt(req.query.year, 10) : null;
+    if (year && (isNaN(year) || year < 2000 || year > 2100)) {
+      return res.status(400).json({ success: false, message: 'Invalid year. Must be a 4-digit year.' });
+    }
+
+    const overview = await orderService.getRevenueOverview(year);
+
+    res.status(200).json({ success: true, data: overview });
+  });
+
+  /**
+   * GET /api/admin/orders/overview
+   * Returns status card metrics and recent orders for admin dashboard
+   */
+  getDashboardOverview = asyncHandler(async (req, res) => {
+    const data = await orderService.getDashboardOverview();
+    res.status(200).json({ success: true, data });
+  });
+
+  /**
    * PATCH /api/admin/orders/:id/status
    * Update order status (Admin only)
    */

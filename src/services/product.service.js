@@ -360,10 +360,10 @@ class ProductService {
     else if (sortBy === 'featured') orderBy.push({ isFeatured: 'desc' });
     orderBy.push({ createdAt: 'desc' });
 
-    // Count total (for pagination metadata)
-    const total = await prisma.product.count({ where });
-
-    const products = await prisma.product.findMany({
+    // Count total and fetch page in parallel — eliminates a sequential DB round-trip
+    const [total, products] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
       where,
       skip,
       take,
@@ -386,7 +386,8 @@ class ProductService {
           take: 1,
         },
       },
-    });
+    }),
+    ]);
 
     const items = products.map((p) => this.#formatProductCard(p));
     return {
