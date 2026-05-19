@@ -9,18 +9,19 @@ import promoService from "./promo.service.js";
  */
 class OrderService {
   /**
-   * Create order from cart (checkout)
+   * Create order from cart (checkout) or direct product
    * Converts cart items to order items with price snapshot
    * @param {string} userId - User ID
-   * @param {Object} data - { shippingAddress, paymentMethod, cartItemIds?, shippingMethod?, shippingCost?, promoCode? }
+   * @param {Object} data - { shippingAddress, paymentMethod, cartItemIds?, shippingMethod?, shippingCost?, promoCode?, directProduct? }
    * @param {string[]} data.cartItemIds - Optional: specific cart item IDs to checkout. If omitted, checkout all cart items.
    * @param {Object} data.shippingAddress - { fullName, phone?, street, city, state?, zipCode, country }
    * @param {string} data.shippingMethod - Optional: e.g., "Standard Delivery", "Express Delivery"
    * @param {number} data.shippingCost - Optional: shipping cost (default 0)
    * @param {string} data.promoCode - Optional: promo code to apply
+   * @param {Object} data.directProduct - Optional: direct product checkout { productId, colorId?, storageOptionId?, ramOptionId?, quantity }
    */
   async createOrder(userId, data) {
-    const { shippingAddress, paymentMethod, cartItemIds, shippingMethod, shippingCost = 0, promoCode } = data;
+    const { shippingAddress, paymentMethod, cartItemIds, shippingMethod, shippingCost = 0, promoCode, directProduct } = data;
 
     if (!shippingAddress) {
       throw new AppError("Shipping address is required", 400);
@@ -32,45 +33,88 @@ class OrderService {
       throw new AppError("Complete shipping address required (fullName, street, city, zipCode, country)", 400);
     }
 
-    // Get user's cart items
-    const cart = await prisma.cart.findUnique({ where: { userId } });
-    if (!cart) {
-      throw new AppError('Cart is empty', 400);
-    }
+    let cartItems;
 
-    // Build where clause: if cartItemIds provided, filter by them; otherwise get all
-    const whereClause = { cartId: cart.id };
-    if (cartItemIds && cartItemIds.length > 0) {
-      whereClause.id = { in: cartItemIds };
-    }
+    // Handle direct product checkout
+    if (directProduct) {
+      const { productId, colorId, storageOptionId, ramOptionId, quantity } = directProduct;
+      
+      if (!productId) {
+        throw new AppError("Product ID is required for direct checkout", 400);
+      }
 
-    const cartItems = await prisma.cartItem.findMany({
-      where: whereClause,
-      include: {
-        product: {
-          select: {
-            id: true,
-            title: true,
-            basePrice: true,
-            stockQuantity: true,
-            listingStatus: true,
-            seriesId: true,
-            deviceModelId: true,
-          },
+      // Fetch the product to get base price
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          title: true,
+          basePrice: true,
+          seriesId: true,
+          deviceModelId: true,
         },
-        color: { select: { id: true, name: true } },
-        storageOption: { select: { id: true, name: true } },
-        ramOption: { select: { id: true, name: true } },
-      },
-    });
+      });
 
-    if (cartItems.length === 0) {
-      throw new AppError("No items to checkout", 400);
-    }
+      if (!product) {
+        throw new AppError("Product not found", 404);
+      }
 
-    // If specific cartItemIds were requested, verify all were found
-    if (cartItemIds && cartItemIds.length > 0 && cartItems.length !== cartItemIds.length) {
-      throw new AppError('Some cart items not found or do not belong to your cart', 400);
+      // Build cart items structure for consistency with cart-based checkout
+      cartItems = [{
+        id: `direct-${productId}`,
+        productId,
+        colorId,
+        storageOptionId,
+        ramOptionId,
+        quantity,
+        product,
+        color: colorId ? { id: colorId, name: '' } : null,
+        storageOption: storageOptionId ? { id: storageOptionId, name: '' } : null,
+        ramOption: ramOptionId ? { id: ramOptionId, name: '' } : null,
+      }];
+    } else {
+      // Handle cart-based checkout (existing flow)
+      const cart = await prisma.cart.findUnique({ where: { userId } });
+      if (!cart) {
+        throw new AppError('Cart is empty', 400);
+      }
+
+      // Build where clause: if cartItemIds provided, filter by them; otherwise get all
+      const whereClause = { cartId: cart.id };
+      if (cartItemIds && cartItemIds.length > 0) {
+        whereClause.id = { in: cartItemIds };
+      }
+
+      const fetchedCartItems = await prisma.cartItem.findMany({
+        where: whereClause,
+        include: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              basePrice: true,
+              stockQuantity: true,
+              listingStatus: true,
+              seriesId: true,
+              deviceModelId: true,
+            },
+          },
+          color: { select: { id: true, name: true } },
+          storageOption: { select: { id: true, name: true } },
+          ramOption: { select: { id: true, name: true } },
+        },
+      });
+
+      if (fetchedCartItems.length === 0) {
+        throw new AppError("No items to checkout", 400);
+      }
+
+      // If specific cartItemIds were requested, verify all were found
+      if (cartItemIds && cartItemIds.length > 0 && fetchedCartItems.length !== cartItemIds.length) {
+        throw new AppError('Some cart items not found or do not belong to your cart', 400);
+      }
+
+      cartItems = fetchedCartItems;
     }
 
     // Validate stock availability for all items
@@ -191,9 +235,11 @@ class OrderService {
       // Execute all stock updates in parallel
       await Promise.all(stockUpdates);
 
-      // Clear only the checked-out items
-      const cartItemIdsToDelete = cartItems.map((item) => item.id);
-      await tx.cartItem.deleteMany({ where: { id: { in: cartItemIdsToDelete } } });
+      // Clear only the checked-out items (only for cart-based checkout)
+      if (!directProduct) {
+        const cartItemIdsToDelete = cartItems.map((item) => item.id);
+        await tx.cartItem.deleteMany({ where: { id: { in: cartItemIdsToDelete } } });
+      }
 
       // Increment promo code usage count if applied
       if (promoCodeId) {

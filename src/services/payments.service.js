@@ -9,7 +9,7 @@ class PaymentsService {
     if (this.stripeSecret) this.stripe = new Stripe(this.stripeSecret, { apiVersion: '2022-11-15' });
   }
 
-  async createCheckoutSession(userId, shippingAddress, cartItemIds = null, shippingMethod = null, shippingCost = 0, promoCode = null) {
+  async createCheckoutSession(userId, shippingAddress, cartItemIds = null, shippingMethod = null, shippingCost = 0, promoCode = null, directProduct = null) {
     if (!this.stripe) throw new Error('Stripe not configured. Set STRIPE_SECRET env var.');
 
     // Get user email for Stripe checkout
@@ -26,6 +26,7 @@ class PaymentsService {
       shippingMethod,
       shippingCost: parseFloat(shippingCost) || 0,
       promoCode,
+      directProduct,
     });
 
     // Build line items for stripe

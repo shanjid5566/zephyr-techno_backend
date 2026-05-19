@@ -3,14 +3,29 @@ import asyncHandler from '../utils/async-handler.js';
 
 class PaymentsController {
   // POST /api/public/product/checkout
+  // Support two modes:
+  // 1. Cart checkout: { shippingAddress, cartItemIds, ... }
+  // 2. Direct product checkout: { productId, colorId, storageOptionId, ramOptionId, quantity, shippingAddress, ... }
   createCheckoutSession = asyncHandler(async (req, res) => {
     const userId = req.user && req.user.id; // allow guest? require auth for now
     if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
 
-    const { shippingAddress, cartItemIds, shippingMethod, shippingCost, promoCode } = req.body;
+    const { shippingAddress, cartItemIds, shippingMethod, shippingCost, promoCode, productId, colorId, storageOptionId, ramOptionId, quantity } = req.body;
     if (!shippingAddress) return res.status(400).json({ success: false, message: 'shippingAddress required' });
 
-    const { order, sessionUrl, sessionId } = await paymentsService.createCheckoutSession(userId, shippingAddress, cartItemIds, shippingMethod, shippingCost, promoCode);
+    // Check if direct product checkout
+    let directProduct = null;
+    if (productId) {
+      directProduct = {
+        productId,
+        colorId: colorId || null,
+        storageOptionId: storageOptionId || null,
+        ramOptionId: ramOptionId || null,
+        quantity: parseInt(quantity) || 1,
+      };
+    }
+
+    const { order, sessionUrl, sessionId } = await paymentsService.createCheckoutSession(userId, shippingAddress, cartItemIds, shippingMethod, shippingCost, promoCode, directProduct);
     res.status(201).json({ success: true, data: { orderId: order.id, checkoutUrl: sessionUrl, sessionId } });
   });
 

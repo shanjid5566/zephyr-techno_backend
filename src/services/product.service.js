@@ -660,6 +660,25 @@ class ProductService {
     const isFeatured = Boolean(featured === true || featured === 'true' || featured === '1' || featured === 1);
 
     try {
+      // If setting as featured, check if we already have 8 featured products
+      if (isFeatured) {
+        const currentProduct = await prisma.product.findUnique({
+          where: { id },
+          select: { isFeatured: true },
+        });
+
+        // Only check limit if this product is not already featured
+        if (!currentProduct.isFeatured) {
+          const featuredCount = await prisma.product.count({
+            where: { isFeatured: true, isDeleted: false },
+          });
+
+          if (featuredCount >= 8) {
+            throw new AppError('Maximum 8 featured products allowed. Please unfeature one before featuring another.', 400);
+          }
+        }
+      }
+
       const updated = await prisma.product.update({
         where: { id },
         data: {

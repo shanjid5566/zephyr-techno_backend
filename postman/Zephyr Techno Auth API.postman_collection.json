@@ -961,6 +961,40 @@
               "response": []
             },
             {
+              "name": "Shop Now - Direct Product Checkout (Auth)",
+              "description": "Direct product purchase without adding to cart. User can buy a product directly from product detail page.",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"productId\": \"<product-uuid>\",\n  \"colorId\": \"<color-uuid>\",\n  \"storageOptionId\": \"<storage-uuid>\",\n  \"ramOptionId\": \"<ram-uuid>\",\n  \"quantity\": 1,\n  \"shippingAddress\": {\n    \"fullName\": \"John Doe\",\n    \"phone\": \"+1 (555) 000-0000\",\n    \"street\": \"123 Main St\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"zipCode\": \"94103\",\n    \"country\": \"US\"\n  },\n  \"shippingMethod\": \"Standard Delivery\",\n  \"shippingCost\": 0,\n  \"promoCode\": \"{{promoCode}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/public/product/checkout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "product",
+                    "checkout"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
               "name": "Create Checkout Session (Auth)",
               "request": {
                 "method": "POST",
