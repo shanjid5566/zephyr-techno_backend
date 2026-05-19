@@ -351,6 +351,11 @@ class ProductService {
     if (storageOptionId) where.storageOptions = { some: { storageOptionId } };
     if (ramOptionId) where.ramOptions = { some: { ramOptionId } };
 
+    // When sortBy=featured, automatically filter to featured products only
+    if (sortBy === 'featured') {
+      where.isFeatured = true;
+    }
+
     const take = Math.min(Number(limit) || 24, 100);
     const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
 
