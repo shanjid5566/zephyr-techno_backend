@@ -404,6 +404,39 @@
               ]
             },
             {
+              "name": "business-form",
+              "item": [
+                {
+                  "name": "Submit Business Form (Public)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"name\": \"John Smith\",\n  \"email\": \"john@acme.com\",\n  \"phone\": \"+8801712345678\",\n  \"requirements\": \"We need 500 units of refurbished iPhones monthly\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/public/business-form",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "public",
+                        "business-form"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
               "name": "sell",
               "item": [
                 {
@@ -3359,7 +3392,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"status\": \"PENDING\"\n}"
+                  "raw": "{\n  \"status\": \"PENDING\"\n}\n// NEW PENDING  CONTRACTED"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/admin/contacts/:id",
@@ -3383,7 +3416,112 @@
               "response": []
             },
             {
-              "name": "Delete Contact (Admin) (via PATCH)",
+              "name": "Delete Contact (Admin)",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/contacts/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "contacts",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "business-forms",
+          "item": [
+            {
+              "name": "Get All Business Forms (Admin)",
+              "description": "Admin endpoint to list all business form submissions with pagination and sorting.\n\n📋 FILTER PARAMETERS:\n\n1. **Pagination:**\n   - page (number): Page number (default: 1, minimum: 1)\n   - limit (number): Items per page (default: 10, maximum: 100)\n   - Skip = (page - 1) × limit\n\n⚙️ SORTING:\n- Results sorted by createdAt in descending order (newest first)\n- No additional sorting options\n\n🔒 Admin-only endpoint - requires adminToken\n\n💾 RESPONSE FIELDS:\n- id: Business form UUID\n- companyName: Company name\n- name: Contact person's name\n- email: Contact email address\n- phone: Contact phone number\n- requirements: Business requirements\n- status: Form status:\n  • NEW - Initial submission status\n  • CONTACTED - Admin has contacted the business\n  • CLOSED - Form processing completed\n- createdAt: Submission timestamp\n\n🎯 EXAMPLES:\n1. GET /api/admin/business-forms?page=1&limit=10\n   → Returns first 10 business forms\n\n2. GET /api/admin/business-forms?page=2&limit=20\n   → Returns business forms on page 2 (20 per page)\n\n3. GET /api/admin/business-forms?limit=50\n   → Returns first 50 business forms\n\n📊 PAGINATION METADATA:\n- Response includes meta with: total, page, limit, totalPages, count, hasNext, hasPrev",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/business-forms?page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "business-forms"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number for pagination (default: 1). Skip = (page - 1) × limit"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Items per page (default: 10, maximum: 100). Controls how many business forms are returned per page."
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Business Form By ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/business-forms/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "business-forms",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Business Form (Status/Fields)",
+              "description": "Update business form details. Admin can update any field including status.\n\n📋 UPDATABLE FIELDS:\n- companyName (string): Company name\n- name (string): Contact person's name\n- email (string): Contact email\n- phone (string): Contact phone number\n- requirements (string): Business requirements\n- status (string): Form status options:\n  • NEW - Initial submission status\n  • CONTACTED - Admin has contacted the business\n  • CLOSED - Form processing completed\n\n🔒 Admin-only endpoint - requires adminToken",
               "request": {
                 "method": "PATCH",
                 "header": [
@@ -3398,17 +3536,49 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"isDeleted\": true\n}"
+                  "raw": "{\n  \"status\": \"CONTACTED\"\n}\n// NEW   CONTACTED   CLOSED"
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/api/admin/contacts/:id",
+                  "raw": "{{baseUrl}}/api/admin/business-forms/:id",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "api",
                     "admin",
-                    "contacts",
+                    "business-forms",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Business Form (Admin)",
+              "description": "Soft delete a business form submission.\n\n🔒 Admin-only endpoint - requires adminToken\n\n📌 NOTE: This is a soft delete - the record is marked as deleted but not permanently removed from database.",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/business-forms/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "business-forms",
                     ":id"
                   ],
                   "variable": [

@@ -12,7 +12,6 @@ yarn-error.log*
 Thumbs.db
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -25,4 +24,7 @@ logs/
 # Build
 dist/
 build/
-.env
+temp_auto_push.bat
+temp_interactive_push.bat
+branch_structure.json
+config.bat
