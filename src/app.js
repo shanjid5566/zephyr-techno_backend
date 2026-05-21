@@ -8,6 +8,7 @@ import publicProductRoutes, { adminRouter as adminProductRoutes } from './routes
 import cartRoutes from './routes/cart.routes.js';
 import orderRoutes from './routes/orders.routes.js';
 import contactRoutes, { adminRouter as adminContactRoutes } from './routes/contact.routes.js';
+import businessRoutes, { adminRouter as adminBusinessRoutes } from './routes/business.routes.js';
 import adminPromoRoutes from './routes/promo.routes.js';
 import { adminRouter as adminDashboardRoutes } from './routes/dashboard.routes.js';
 import { adminRouter as adminOrderRoutes } from './routes/orders.routes.js';
@@ -67,10 +68,12 @@ app.use('/api/admin/orders', adminOrderRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/sell-requests', adminSellRoutes);
+app.use('/api/admin/business-forms', adminBusinessRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin/contacts', adminContactRoutes);
 app.use('/api/admin/promocodes', adminPromoRoutes);
 app.use('/api/public/product', publicProductRoutes);
+app.use('/api/public/business-form', businessRoutes);
 app.use('/api/sell', sellRoutes);
 
 // 404 — catch all undefined routes

@@ -72,6 +72,12 @@ enum ContactStatus {
   CONTRACTED
 }
 
+enum BusinessFormStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
 // =====================================================================================
 // CORE PLATFORM ENTITIES
 // =====================================================================================
@@ -600,4 +606,22 @@ model DeviceImage {
   deletedAt     DateTime?
 
   @@index([sellRequestId])
+}
+
+model BusinessForm {
+  id           String                @id @default(uuid())
+  companyName  String
+  name         String
+  email        String
+  phone        String
+  requirements String
+  status       BusinessFormStatus    @default(NEW)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  isDeleted    Boolean               @default(false)
+  deletedAt    DateTime?
+
+  @@index([createdAt(sort: Desc)])
+  @@index([status])
+  @@index([isDeleted])
 }
