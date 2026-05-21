@@ -10,8 +10,10 @@ import promoService from "./promo.service.js";
 class OrderService {
   /**
    * Create order from cart (checkout) or direct product
-   * Converts cart items to order items with price snapshot
-   * @param {string} userId - User ID
+   * Supports both authenticated users and guest checkout
+   * @param {string} userId - User ID (null for guest)
+   * @param {string} guestSessionId - Guest session ID (null for authenticated users)
+   * @param {string} guestEmail - Guest email (null for authenticated users)
    * @param {Object} data - { shippingAddress, paymentMethod, cartItemIds?, shippingMethod?, shippingCost?, promoCode?, directProduct? }
    * @param {string[]} data.cartItemIds - Optional: specific cart item IDs to checkout. If omitted, checkout all cart items.
    * @param {Object} data.shippingAddress - { fullName, phone?, street, city, state?, zipCode, country }
@@ -20,7 +22,7 @@ class OrderService {
    * @param {string} data.promoCode - Optional: promo code to apply
    * @param {Object} data.directProduct - Optional: direct product checkout { productId, colorId?, storageOptionId?, ramOptionId?, quantity }
    */
-  async createOrder(userId, data) {
+  async createOrder(userId, guestSessionId, guestEmail, data) {
     const { shippingAddress, paymentMethod, cartItemIds, shippingMethod, shippingCost = 0, promoCode, directProduct } = data;
 
     if (!shippingAddress) {
@@ -34,6 +36,11 @@ class OrderService {
     }
 
     let cartItems;
+
+    // Validate that either authenticated or guest checkout is provided
+    if (!userId && !guestSessionId) {
+      throw new AppError('Either userId or guestSessionId is required', 400);
+    }
 
     // Handle direct product checkout
     if (directProduct) {
@@ -73,20 +80,21 @@ class OrderService {
         ramOption: ramOptionId ? { id: ramOptionId, name: '' } : null,
       }];
     } else {
-      // Handle cart-based checkout (existing flow)
-      const cart = await prisma.cart.findUnique({ where: { userId } });
+      // Handle cart-based checkout (both authenticated users and guests)
+      const whereClause = userId ? { userId } : { sessionId: guestSessionId };
+      const cart = await prisma.cart.findUnique({ where: whereClause });
       if (!cart) {
         throw new AppError('Cart is empty', 400);
       }
 
       // Build where clause: if cartItemIds provided, filter by them; otherwise get all
-      const whereClause = { cartId: cart.id };
+      const cartWhere = { cartId: cart.id };
       if (cartItemIds && cartItemIds.length > 0) {
-        whereClause.id = { in: cartItemIds };
+        cartWhere.id = { in: cartItemIds };
       }
 
       const fetchedCartItems = await prisma.cartItem.findMany({
-        where: whereClause,
+        where: cartWhere,
         include: {
           product: {
             select: {
@@ -164,10 +172,10 @@ class OrderService {
 
     // Create order and order items in transaction
     const order = await prisma.$transaction(async (tx) => {
-      // Create shipping address
+      // Create shipping address (for guest, userId will be null)
       const address = await tx.userAddress.create({
         data: {
-          userId,
+          userId: userId || null,
           fullName: shippingAddress.fullName,
           phone: shippingAddress.phone || null,
           street: shippingAddress.street,
@@ -186,7 +194,8 @@ class OrderService {
       // Create order
       const createdOrder = await tx.order.create({
         data: {
-          userId,
+          userId: userId || null,
+          guestEmail: guestEmail || null,
           stringId,
           addressId: address.id,
           totalPrice: finalTotal,

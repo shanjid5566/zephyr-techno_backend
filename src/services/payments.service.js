@@ -9,17 +9,21 @@ class PaymentsService {
     if (this.stripeSecret) this.stripe = new Stripe(this.stripeSecret, { apiVersion: '2022-11-15' });
   }
 
-  async createCheckoutSession(userId, shippingAddress, cartItemIds = null, shippingMethod = null, shippingCost = 0, promoCode = null, directProduct = null) {
+  async createCheckoutSession(userId, guestSessionId, guestEmail, shippingAddress, cartItemIds = null, shippingMethod = null, shippingCost = 0, promoCode = null, directProduct = null) {
     if (!this.stripe) throw new Error('Stripe not configured. Set STRIPE_SECRET env var.');
 
-    // Get user email for Stripe checkout
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
+    // Get user email for Stripe checkout - either from authenticated user or guest
+    let userEmail = guestEmail;
+    if (userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      userEmail = user?.email || guestEmail;
+    }
 
     // Create order first (PENDING)
-    const order = await orderService.createOrder(userId, { 
+    const order = await orderService.createOrder(userId, guestSessionId, guestEmail, { 
       shippingAddress, 
       paymentMethod: 'STRIPE', 
       cartItemIds,
@@ -45,7 +49,7 @@ class PaymentsService {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-      customer_email: user?.email || undefined,
+      customer_email: userEmail || undefined,
       line_items,
       success_url: successUrl,
       cancel_url: cancelUrl,

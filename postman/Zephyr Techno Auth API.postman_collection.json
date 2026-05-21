@@ -264,6 +264,7 @@
         },
         {
           "name": "Login (User)",
+          "description": "User login with optional guest cart migration.\n\nOPTIONAL: Include guestSessionId to migrate guest cart items to authenticated user account.\n\nIf guest added items to cart before logging in:\n1. Guest items will be automatically merged into user's cart during login\n2. If same product exists in both carts, quantities are combined\n3. Guest session is cleared after migration",
           "event": [
             {
               "listen": "test",
@@ -292,7 +293,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"tirafin110@homvela.com\",\n  \"password\": \"Admin@1234\"\n}"
+              "raw": "{\n  \"email\": \"tirafin110@homvela.com\",\n  \"password\": \"Admin@1234\",\n  \"guestSessionId\": \"{{guestSessionId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
@@ -1109,6 +1110,243 @@
                       "key": "id",
                       "value": ""
                     }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "guest",
+          "item": [
+            {
+              "name": "Add To Cart (Guest)",
+              "description": "Add product to cart as guest user without authentication.\nGuest must provide guestSessionId (UUID) to track cart across sessions.\n\n📋 REQUIRED PARAMETERS:\n- guestSessionId (string): Unique session identifier (e.g., UUID)\n- productId (string): Product UUID\n- colorId (string): Selected color UUID\n- storageOptionId (string): Selected storage option UUID\n- ramOptionId (string): Selected RAM option UUID\n- quantity (number): Quantity to add (default: 1)\n\n🎯 FLOW:\n1. Frontend generates guestSessionId (UUID) and stores in localStorage\n2. Send guestSessionId with each request\n3. Cart automatically created for new session\n4. Duplicate configs increase quantity instead of creating duplicate items",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Auto-generate guestSessionId if not already set",
+                      "if (!pm.collectionVariables.get('guestSessionId') || pm.collectionVariables.get('guestSessionId') === '') {",
+                      "  const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                      "    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);",
+                      "    return v.toString(16);",
+                      "  });",
+                      "  const sessionId = uuid();",
+                      "  pm.collectionVariables.set('guestSessionId', sessionId);",
+                      "  console.log('[Postman] Generated guestSessionId:', sessionId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"guestSessionId\": \"{{guestSessionId}}\",\n  \"productId\": \"{{productId}}\",\n  \"colorId\": \"{{colorId}}\",\n  \"storageOptionId\": \"{{storageOptionId}}\",\n  \"ramOptionId\": \"{{ramOptionId}}\",\n  \"quantity\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/cart",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "cart"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Cart (Guest)",
+              "description": "Retrieve guest cart with all items and totals.\n\n📋 REQUIRED PARAMETERS:\n- guestSessionId (string, query param): Guest session identifier\n\n💾 RESPONSE:\n- items: Array of cart items with product details\n- subtotal: Sum of all item totals\n- totalItems: Total quantity of items in cart",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/cart?guestSessionId={{guestSessionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "cart"
+                  ],
+                  "query": [
+                    {
+                      "key": "guestSessionId",
+                      "value": "{{guestSessionId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Cart Item (Guest)",
+              "description": "Update quantity of item in guest cart.",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"guestSessionId\": \"{{guestSessionId}}\",\n  \"quantity\": 2\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/cart/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "cart",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{cartItemId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Remove Cart Item (Guest)",
+              "description": "Remove specific item from guest cart.",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"guestSessionId\": \"{{guestSessionId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/cart/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "cart",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{cartItemId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Clear Cart (Guest)",
+              "description": "Remove all items from guest cart.",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"guestSessionId\": \"{{guestSessionId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/cart",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "cart"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Checkout Session (Guest)",
+              "description": "Create checkout session for guest user from cart.\n\n📋 REQUIRED PARAMETERS:\n- guestSessionId (string): Guest session identifier\n- guestEmail (string): Guest email for order tracking\n- shippingAddress (object): Delivery address with fields: fullName, street, city, zipCode, country\n- cartItemIds (array, optional): Specific items to checkout. If empty, all items checked out\n- shippingMethod (string, optional): Delivery method (e.g., \"Standard Delivery\")\n- shippingCost (number, optional): Shipping charges (default: 0)\n- promoCode (string, optional): Discount code\n\n✅ FLOW:\n1. Guest provides email (required for order tracking)\n2. Cart items fetched and validated\n3. Order created with guestEmail and guest session\n4. Stripe checkout session generated\n5. Returns checkout URL for payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"guestSessionId\": \"{{guestSessionId}}\",\n  \"guestEmail\": \"guest@example.com\",\n  \"cartItemIds\": [],\n  \"shippingAddress\": {\n    \"fullName\": \"John Doe\",\n    \"phone\": \"+1 (555) 000-0000\",\n    \"street\": \"123 Main St\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"zipCode\": \"94103\",\n    \"country\": \"US\"\n  },\n  \"shippingMethod\": \"Standard Delivery\",\n  \"shippingCost\": 0,\n  \"promoCode\": \"{{promoCode}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/public/product/checkout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "product",
+                    "checkout"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Confirm Checkout Session (Guest)",
+              "description": "Confirm payment for guest checkout after Stripe payment completion.\n\n📋 PARAMETERS:\n- sessionId (string): Stripe checkout session ID (returned from checkout creation)\n\n✅ RESPONSE:\n- Returns confirmed order details\n- Updates order status to PROCESSING\n- Updates payment status to PAID",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"<stripe-session-id>\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/public/product/checkout/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "product",
+                    "checkout",
+                    "confirm"
                   ]
                 }
               },
@@ -3966,6 +4204,10 @@
     },
     {
       "key": "cartItemId",
+      "value": ""
+    },
+    {
+      "key": "guestSessionId",
       "value": ""
     },
     {

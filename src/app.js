@@ -1,5 +1,6 @@
 import express from 'express';
 import compression from 'compression';
+import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/users.routes.js';
 import adminAttributesRoutes from './routes/attributes.routes.js';
@@ -15,6 +16,15 @@ import sellRoutes, { adminRouter as adminSellRoutes } from './routes/sell.routes
 import env from './config/env.js';
 
 const app = express();
+
+// CORS configuration
+const corsOptions = {
+  origin: ['http://localhost:5173', 'https://zephyr-techno.maktechgroup.tech'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
 
 // Compress all responses (gzip/deflate) — reduces payload size by 40-80%
 app.use(compression());

@@ -9,10 +9,16 @@ import { buildImageUrl } from "../utils/url.js";
 class CartService {
   /**
    * Add product to cart with selected options
+   * Supports both authenticated users (userId) and guests (guestSessionId)
    * User selects: color, storage, RAM when adding to cart
    */
-  async addToCart(userId, data) {
+  async addToCart(userId, guestSessionId, data) {
     const { productId, colorId, storageOptionId, ramOptionId, quantity } = data;
+
+    // Validate that either userId or guestSessionId is provided
+    if (!userId && !guestSessionId) {
+      throw new AppError("Either userId or guestSessionId required", 400);
+    }
 
     // Validate quantity
     const qty = parseInt(quantity) || 1;
@@ -63,10 +69,19 @@ class CartService {
       throw new AppError(`Only ${product.stockQuantity} items in stock`, 400);
     }
 
-    // Ensure user has a cart (create if missing)
-    let cart = await prisma.cart.findUnique({ where: { userId } });
-    if (!cart) {
-      cart = await prisma.cart.create({ data: { userId } });
+    // Ensure cart exists (create if missing)
+    let cart;
+    if (userId) {
+      cart = await prisma.cart.findUnique({ where: { userId } });
+      if (!cart) {
+        cart = await prisma.cart.create({ data: { userId } });
+      }
+    } else {
+      // Guest checkout - use sessionId
+      cart = await prisma.cart.findUnique({ where: { sessionId: guestSessionId } });
+      if (!cart) {
+        cart = await prisma.cart.create({ data: { sessionId: guestSessionId } });
+      }
     }
 
     // Check if this exact configuration already exists in user's cart
@@ -149,11 +164,18 @@ class CartService {
 
   /**
    * Get user's cart with all items
+   * Supports both authenticated users (userId) and guests (guestSessionId)
    */
-  async getCart(userId) {
+  async getCart(userId, guestSessionId) {
+    // Validate that either userId or guestSessionId is provided
+    if (!userId && !guestSessionId) {
+      throw new AppError("Either userId or guestSessionId required", 400);
+    }
+
     // Single query: fetch cart + all its active items in one DB round-trip
+    const whereClause = userId ? { userId } : { sessionId: guestSessionId };
     const cart = await prisma.cart.findUnique({
-      where: { userId },
+      where: whereClause,
       include: {
         cartItems: {
           where: { isDeleted: false },
@@ -181,7 +203,7 @@ class CartService {
 
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalItems = items.length; // Count of unique items in cart (not sum of quantities)
 
     return {
       items,
@@ -192,8 +214,14 @@ class CartService {
 
   /**
    * Update cart item quantity
+   * Supports both authenticated users and guests
    */
-  async updateCartItemQuantity(userId, cartItemId, quantity) {
+  async updateCartItemQuantity(userId, guestSessionId, cartItemId, quantity) {
+    // Validate that either userId or guestSessionId is provided
+    if (!userId && !guestSessionId) {
+      throw new AppError("Either userId or guestSessionId required", 400);
+    }
+
     const qty = parseInt(quantity);
     if (qty < 1) {
       throw new AppError("Quantity must be at least 1", 400);
@@ -212,8 +240,11 @@ class CartService {
       throw new AppError("Cart item not found", 404);
     }
 
-    // Authorization: ensure the cart belongs to this user
-    if (!cartItem.cart || cartItem.cart.userId !== userId) {
+    // Authorization: ensure the cart belongs to this user/guest
+    if (userId && (!cartItem.cart || cartItem.cart.userId !== userId)) {
+      throw new AppError('Unauthorized to modify this cart item', 403);
+    }
+    if (guestSessionId && (!cartItem.cart || cartItem.cart.sessionId !== guestSessionId)) {
       throw new AppError('Unauthorized to modify this cart item', 403);
     }
 
@@ -248,8 +279,13 @@ class CartService {
 
   /**
    * Remove item from cart
+   * Supports both authenticated users and guests
    */
-  async removeCartItem(userId, cartItemId) {
+  async removeCartItem(userId, guestSessionId, cartItemId) {
+    // Validate that either userId or guestSessionId is provided
+    if (!userId && !guestSessionId) {
+      throw new AppError("Either userId or guestSessionId required", 400);
+    }
 
     // Verify ownership
     const cartItem = await prisma.cartItem.findUnique({
@@ -261,7 +297,10 @@ class CartService {
       throw new AppError('Cart item not found', 404);
     }
 
-    if (!cartItem.cart || cartItem.cart.userId !== userId) {
+    if (userId && (!cartItem.cart || cartItem.cart.userId !== userId)) {
+      throw new AppError('Unauthorized to remove this cart item', 403);
+    }
+    if (guestSessionId && (!cartItem.cart || cartItem.cart.sessionId !== guestSessionId)) {
       throw new AppError('Unauthorized to remove this cart item', 403);
     }
 
@@ -272,9 +311,16 @@ class CartService {
 
   /**
    * Clear entire cart
+   * Supports both authenticated users and guests
    */
-  async clearCart(userId) {
-    const cart = await prisma.cart.findUnique({ where: { userId } });
+  async clearCart(userId, guestSessionId) {
+    // Validate that either userId or guestSessionId is provided
+    if (!userId && !guestSessionId) {
+      throw new AppError("Either userId or guestSessionId required", 400);
+    }
+
+    const whereClause = userId ? { userId } : { sessionId: guestSessionId };
+    const cart = await prisma.cart.findUnique({ where: whereClause });
     if (!cart) return true;
 
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
@@ -320,6 +366,96 @@ class CartService {
       total: item.product.basePrice * item.quantity,
       createdAt: item.createdAt,
     };
+  }
+
+  /**
+   * Migrate guest cart items to authenticated user's cart
+   * Called when a guest logs in
+   * Merges guest items into user cart (updates quantity if same product exists)
+   */
+  async migrateGuestCartToUser(guestSessionId, userId) {
+    if (!guestSessionId || !userId) {
+      return; // Nothing to migrate
+    }
+
+    try {
+      // Find guest cart
+      const guestCart = await prisma.cart.findUnique({
+        where: { sessionId: guestSessionId },
+        include: { cartItems: true },
+      });
+
+      // If no guest cart or no items, nothing to migrate
+      if (!guestCart || guestCart.cartItems.length === 0) {
+        return;
+      }
+
+      // Find or create user's authenticated cart
+      let userCart = await prisma.cart.findUnique({
+        where: { userId },
+      });
+
+      if (!userCart) {
+        userCart = await prisma.cart.create({
+          data: { userId },
+        });
+      }
+
+      // Migrate each guest cart item to user cart
+      for (const guestItem of guestCart.cartItems) {
+        // Check if same product configuration already exists in user's cart
+        const existingItem = await prisma.cartItem.findFirst({
+          where: {
+            cartId: userCart.id,
+            productId: guestItem.productId,
+            colorId: guestItem.colorId,
+            storageOptionId: guestItem.storageOptionId,
+            ramOptionId: guestItem.ramOptionId,
+          },
+        });
+
+        if (existingItem) {
+          // If product already in user's cart, add guest quantity to it
+          const newQuantity = existingItem.quantity + guestItem.quantity;
+
+          // Verify stock before updating
+          const product = await prisma.product.findUnique({
+            where: { id: guestItem.productId },
+            select: { stockQuantity: true },
+          });
+
+          if (product && product.stockQuantity >= newQuantity) {
+            await prisma.cartItem.update({
+              where: { id: existingItem.id },
+              data: { quantity: newQuantity },
+            });
+          }
+        } else {
+          // If product not in user's cart, add it
+          await prisma.cartItem.create({
+            data: {
+              cartId: userCart.id,
+              productId: guestItem.productId,
+              colorId: guestItem.colorId,
+              storageOptionId: guestItem.storageOptionId,
+              ramOptionId: guestItem.ramOptionId,
+              quantity: guestItem.quantity,
+            },
+          });
+        }
+      }
+
+      // Delete guest cart and its items (cascade delete via Prisma)
+      await prisma.cart.delete({
+        where: { id: guestCart.id },
+      });
+
+      return { migrated: true, itemCount: guestCart.cartItems.length };
+    } catch (error) {
+      // Log error but don't throw - migration is a nice-to-have feature
+      console.error('[CartService] Migration failed:', error);
+      return { migrated: false };
+    }
   }
 }
 

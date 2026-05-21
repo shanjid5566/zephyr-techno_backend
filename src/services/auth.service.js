@@ -5,6 +5,7 @@ import prisma from '../utils/prisma.js';
 import Mailer from '../utils/mailer.js';
 import AppError from '../utils/app-error.js';
 import env from '../config/env.js';
+import cartService from './cart.service.js';
 
 /**
  * Reusable Prisma select shape that exactly matches #sanitizeUser output.
@@ -144,6 +145,7 @@ class AuthService {
   async login(payload) {
     const email    = this.#normalizeEmail(payload.email);
     const password = this.#requireString(payload.password, 'Password');
+    const guestSessionId = payload.guestSessionId || null; // Optional: for cart migration
 
     this.#requireJwtSecret();
 
@@ -174,6 +176,11 @@ class AuthService {
       this.jwtSecret,
       { expiresIn: this.jwtExpiresIn },
     );
+
+    // Migrate guest cart to authenticated user's cart (if guest session exists)
+    if (guestSessionId) {
+      await cartService.migrateGuestCartToUser(guestSessionId, user.id);
+    }
 
     return {
       message: 'Login successful.',

@@ -1,13 +1,11 @@
 import { Router } from "express";
 import cartController from "../controllers/cart.controller.js";
-import { authenticate } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-// All cart routes require authentication
-router.use(authenticate);
-
-// Cart operations
+// Cart operations - Support both authenticated users and guest checkout
+// Guests provide guestSessionId in request body/query
+// Authenticated users provide JWT token in Authorization header
 router.post("/", cartController.addToCart);
 router.get("/", cartController.getCart);
 router.patch("/:id", cartController.updateCartItem);
